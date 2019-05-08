@@ -6,6 +6,9 @@
 
 from .nanohubtools import Nanohubtool
 from .qdottools import Qdotexplorer
+from .api import *
+from .hubxml import *
+
 
 from ._version import __version__, version_info
 
