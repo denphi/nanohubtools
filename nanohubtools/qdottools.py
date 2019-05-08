@@ -1,14 +1,17 @@
 from .nanohubtools import Nanohubtool, setInterval
 from plotly.graph_objs import FigureWidget
-from ipywidgets import IntText, Text, Output, Tab, Button, Accordion
+from ipywidgets import IntText, Text, Output, Tab, Button, Accordion, GridBox, Layout, ButtonStyle, Label
 from IPython.display import clear_output
 from .hubxml import extract_all_results
 import numpy as np
 import xml.etree.ElementTree as ET
 from floatview import Floatview
+from threading import Lock
+
 import copy
 from base64 import b64decode, b64encode
 import zlib
+import time
 
 class Qdotexplorer (Nanohubtool):
     
@@ -16,7 +19,9 @@ class Qdotexplorer (Nanohubtool):
         Nanohubtool.__init__(self, credentials, **kwargs)
         #self.options['nsample'] = IntText(description = '# samples:', value = 2)
         #self.options['nsample'].observe(lambda v:self.UpdateTraces({'line.width':v['new']}), names='value')                
-        self.experiment_container = []
+        self.experiment_container = None
+        self.debug_output = Output()
+        
         self.parameters = kwargs.get('parameters', [])
         self.units = kwargs.get('units', ['' for i in self.parameters])
         self.sleep_time = 5
@@ -28,7 +33,6 @@ class Qdotexplorer (Nanohubtool):
             self.options[param] = Text(value='',placeholder=param,description='',disabled=False)
 
         self.updateRender()
-        self.updating = False
         self.inter = setInterval(self.sleep_time, lambda a=self : Qdotexplorer.updateExperiments(a))
 
         def __del__(self):
@@ -47,33 +51,29 @@ class Qdotexplorer (Nanohubtool):
         self.experiment_container.children = []
         with self.widget_output:
             display(self.experiment_container)
+            display(self.debug_output)
+        with self.debug_output:
+            print("testing")
+            
 
 
     def addExperiment(self, experiment):
-        validExperiment = False
-        try:
-            experiment['session_id'] = None
-            experiment['complete'] = False
-            experiment['results'] = ''
-            validExperiment = True
-        except:
-            validExperiment = False
-            
-        if validExperiment:
-            experiment['output'] = Output()
-            self.experiments.append(experiment)      
-            children = list(self.experiment_container.children)
-            children.append(experiment['output'])
-            self.experiment_container.children=children
-            len_exp = len(self.experiment_container.children)
-            self.experiment_container.set_title(len_exp-1, "New")
-            self.displayExperiment(experiment)
-        else:
-            print ("This was not a valid experiment")
+        experiment['session_id'] = None
+        experiment['complete'] = False
+        experiment['results'] = ''
+        experiment['output'] = Output()
+        experiment['status'] = Label(value='New',layout=Layout(width='auto'))
+        self.experiments.append(experiment)      
+        children = list(self.experiment_container.children)
+        children.append(experiment['output'])
+        self.experiment_container.children=children
+        len_exp = len(self.experiment_container.children)
+        self.experiment_container.set_title(len_exp-1, "New")
+        self.displayExperiment(experiment)
             
     def updateExperiments(self):
-        if (self.updating == False):        
-            self.updating = True
+        lock = Lock()
+        if (lock.acquire(False)):
             if (self.session):    
                 for i, experiment in enumerate(self.experiments):
                     if experiment['session_id'] == None:
@@ -84,19 +84,29 @@ class Qdotexplorer (Nanohubtool):
                             experiment['session_id'] = None
                     else: 
                         if experiment['complete'] == False:
-                            status = self.session.checkStatus(experiment['session_id'])                
-                            print (status)
-                            if 'finished' in status and 'run_file' in status:
-                                if status['finished'] and status['run_file'] != "":
-                                    experiment['complete'] = True
-                                    xml = self.session.getResults(experiment['session_id'], status['run_file'])
-                                    print (xml)
-                                    xml = ET.fromstring(xml)
-                                    experiment['results'] = xml.find('output')
-                                    self.displayExperiment(experiment)
-            self.updating = False
+                            status = self.session.checkStatus(experiment['session_id'])                                  
+                            if 'success' in status and status['success']: 
+                                if 'status' in status:
+                                    if len(status['status']) > 0:
+                                        experiment['status'].value = str(status['status'][0])
+                                if 'finished' in status and 'run_file' in status:
+                                    if status['finished'] and status['run_file'] != "":
+                                        experiment['complete'] = True                                    
+                                        with experiment['output']:
+                                            but = Button(description='Load results', icon='check', disable=False)
+                                            but.on_click(lambda a, b=self, c=experiment, d=status['run_file'] : Qdotexplorer.loadResults(b,c,d))
+                                            display(but)
+            lock.release()
     
+    def loadResults(self, experiment, run_file):
+        xml = self.session.getResults(experiment['session_id'], run_file)            
+        xml = ET.fromstring(xml)
+        experiment['results'] = xml.find('output')
+        self.displayExperiment(experiment)
 
+                
+    
+    
     def loadExperiment(self, session_id):
         experiment = {'parameters':{}}
         if self.session is not None:
@@ -105,16 +115,13 @@ class Qdotexplorer (Nanohubtool):
             experiment['complete'] = False            
             experiment['results'] = ''
             experiment['output'] = Output()
-            
+            experiment['status'] = Label(value='Complete',layout=Layout(width='auto'))
             if 'finished' in status:
                 if status['finished']:
                     experiment['complete'] = True            
                     if 'run_file' in status:
-                        xml = self.session.getResults(session_id, status['run_file'])
-                        #experiment['parameters'] = extract_all_parameters(results) #TODO
-                        xml = ET.fromstring(xml)
-                        experiment['results'] = xml.find('output')
-                        self.displayExperiment(experiment)
+                        self.loadResults(experiment, status['run_file'])
+
             self.experiments.append(experiment)                        
             children = list(self.experiment_container.children)
             children.append(experiment['output'])
@@ -125,21 +132,29 @@ class Qdotexplorer (Nanohubtool):
             
 
     def displayExperiment(self, experiment):
+
+        params_b = []
+        for k, v in experiment['parameters'].items():
+            params_b.append(Button(description=k,layout=Layout(width='auto'),style=ButtonStyle(button_color='lightblue')))
+            params_b.append(Label(value=v,layout=Layout(width='auto')))
+        params_b.append(Button(description='Status',layout=Layout(width='auto'),style=ButtonStyle(button_color='lightblue')))
+        params_b.append(experiment['status'])
+        grid = GridBox(children=params_b, layout=Layout(grid_template_columns='50% 50%'))            
+        out_param = Output()
     
         if (experiment['complete']):
-            out_param = Output()
             out_curves = Output()
             out_volumes = Output()    
             accordion = Accordion(children=[out_param, out_curves, out_volumes])
             accordion.set_title(0, 'Parameters')
             accordion.set_title(1, 'Curves')
             accordion.set_title(2, 'Volumes')
-                    
+                
             experiment['output'].clear_output()
             with experiment['output']:
                 display(accordion)
             with out_param:
-                display(experiment['parameters'])
+                display(grid)
             with out_curves:            
                 curves = experiment['results'].findall('curve')
                 self.actions = [None for c in curves]
@@ -162,13 +177,14 @@ class Qdotexplorer (Nanohubtool):
                     but.on_click(lambda a, b=self, c=v, d=component : Qdotexplorer.plotVTK(b,c,d))
                     display(but)
         else:
-            out_param = Output()
             accordion = Accordion(children=[out_param])
             accordion.set_title(0, 'Parameters')
             with experiment['output']:
                 display(accordion)
             with out_param:
-                display(experiment['parameters'])
+                display(grid)
+
+                
     
 
     def getData(self, field, container):
