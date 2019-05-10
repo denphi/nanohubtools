@@ -61,6 +61,7 @@ setup_args = dict(
         'floatview>=0.1.11',
         'plotly>=3.8.1',
         'numpy>=1.16.0',
+        'hublib>=0.9.94',
     ],
     extras_require = {
         'test': [

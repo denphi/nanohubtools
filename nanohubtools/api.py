@@ -43,13 +43,19 @@ import json
 url = r'https://nanohub.org/api'
 sleep_time = 1.5
 
-def do_get(url, path, data, hdrs):
+def do_get(url, path, data, hdrs, json = True):
     request = requests.get('{0}/{1}'.format(url, path) , data=data, headers=hdrs)
-    return request.json()    
+    if (json):
+        return request.json()    
+    else:
+        return request.text
 
-def do_post(url, path, data, hdrs):
+def do_post(url, path, data, hdrs, json = True):
     request = requests.post('{0}/{1}'.format(url, path) , data=data, headers=hdrs)
-    return request.json()
+    if (json):
+        return request.json()    
+    else:
+        return request.text
     
 def validate_request (auth_json):
     if 'errors' in auth_json:
@@ -73,6 +79,13 @@ def launch_tool(driver_json, headers):
         msg = 'launch_tool failed ({0}): {1}\n'.format(run_json['code'], run_json['message'])
         sys.stderr.write(msg)
         sys.exit(1)
+
+def load_tool_definition(tool_name, headers):
+    try :
+        tool_xml = do_get(url, 'tools/' + tool_name + '/rappturexml', {}, headers, False)
+        return tool_xml
+    except:
+        return ""
         
 def check_status(session_json, headers):
     """Start a tool session; return the session id"""
