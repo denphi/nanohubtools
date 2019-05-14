@@ -5,7 +5,7 @@
 # Distributed under the terms of the Modified BSD License.
 
 from .nanohubtools import Nanohubtool
-from .qdottools import Qdotexplorer, SimpleQuantumDot
+from .qdottools import Qdotexplorer, SimpleQuantumDot, StackedQuantumDot
 
 from ._version import __version__, version_info
 

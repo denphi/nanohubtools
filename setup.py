@@ -33,7 +33,7 @@ with open("README.md", "r") as fh:
 
 setup_args = dict(
     name            = name,
-    description     = 'A floatview output widget for JupyterLab + GlueViz Visualization with plotly',
+    description     = 'A set of tools to run nanoHubtools',
     long_description=long_description,
     long_description_content_type="text/markdown",
     version         = version,

@@ -4,6 +4,8 @@ from IPython.display import clear_output
 from floatview import Floatview
 from ipywidgets import Output, Tab, ToggleButton, Text, Dropdown, IntText, VBox, HBox, Accordion, Button, Layout
 import time, threading
+import xml.etree.ElementTree as ET
+import copy
 
 class Nanohubtool():
 
@@ -17,7 +19,7 @@ class Nanohubtool():
         self.options = {}
         self.window = None
         self.tab = None
-
+        self.xml  = None
         self.debug = kwargs.get('debug', None)
         self.modal = kwargs.get('modal', True)
         self.only_subsets = kwargs.get('only_subsets', False)
@@ -30,6 +32,7 @@ class Nanohubtool():
         self.option_tab.children = [self.options_cont]
         self.option_tab.set_title(0, "Parameters")
         self.option_tab.layout.display = None
+        self.parameters = {}
         
 
         try : 
@@ -102,10 +105,41 @@ class Nanohubtool():
             self.option_tab.layout.display = "None"
             self.options_check.description = "Show Parameters"
 
+        
+    def generateDriver(self, experiment):
+        xml = copy.copy(self.xml)        
+        for parameter, value in experiment['parameters'].items():
+            if parameter in self.parameters:
+                if 'id' in self.parameters[parameter]:
+                    for elem in xml.iter():
+                        if 'id' in elem.attrib:
+                            if elem.attrib['id'] == self.parameters[parameter]['id']:
+                                current = ET.Element("current")
+                                current.text = str(value)
+                                elem.insert(0,current)
+        for elem in xml.iter():
+            if 'id' in elem.attrib:
+                if elem.find("current") is None:
+                    units = ""
+                    if elem.find("units") is not None:
+                        units = elem.find("units").text
+                    if elem.find("default") is not None:
+                        current = ET.Element("current")
+                        current.text = elem.find("default").text + units
+                        elem.insert(0,current)
+                
+        driver_str  = '<?xml version="1.0"?>\n' + ET.tostring(xml).decode()
+        driver_json = {'app': self.tool, 'xml': driver_str}
+        return driver_json;   
+
+            
     def extractParameters(self, parameters, xml):
         inputs = xml.find('input')
         params = {}
         for elem in inputs.iter():
+            id = ''
+            if 'id' in elem.attrib:
+                id = elem.attrib['id']
             about = elem.find("about")
             if (about is not None):
                 description = elem.find('description')
@@ -116,6 +150,8 @@ class Nanohubtool():
                     if (label.text in parameters):
                         param = {"type": elem.tag, "description" : description}
                         param['units'] = elem.find('units')
+                        param['id'] = id
+                        param['label'] = label.text                        
                         if param['units'] is not None:
                             param['units'] = param['units'].text
                         param['units'] = elem.find('units')
@@ -145,6 +181,55 @@ class Nanohubtool():
                         param['options'] = opt_list
                         params [label.text] = param
         return params;
+        
+    def extractParametersById(self, parameters, xml):
+        inputs = xml.find('input')
+        params = {}
+        for elem in inputs.iter():
+            id = ''
+            if 'id' in elem.attrib:
+                id = elem.attrib['id']
+            about = elem.find("about")
+            if (about is not None):
+                description = elem.find('description')
+                if description is not None:
+                    description = description.text        
+                label = about.find("label")
+                if (label is not None):
+                    if (id in parameters):
+                        param = {"type": elem.tag, "description" : description}
+                        param['units'] = elem.find('units')
+                        param['id'] = id
+                        param['label'] = label.text                        
+                        if param['units'] is not None:
+                            param['units'] = param['units'].text
+                        param['units'] = elem.find('units')
+                        if param['units'] is not None:
+                            param['units'] = param['units'].text
+                        param['default'] = elem.find('default')
+                        if param['default'] is not None:
+                            param['default'] = param['default'].text
+                        param['min'] = elem.find('min')
+                        if param['min'] is not None:
+                            param['min'] = param['min'].text
+                        param['max'] = elem.find('max')
+                        if param['max'] is not None:
+                            param['max'] = param['max'].text
+                        param['current'] = elem.find('current')
+                        if param['current'] is not None:
+                            param['current'] = param['current'].text
+                        options = elem.findall('option')
+                        opt_list = []
+                        for option in options:
+                            labout = option.find("about")
+                            if (labout is not None):
+                                llabel = labout.find("label")
+                                if (llabel is not None):
+                                    if (llabel.text):
+                                        opt_list.append(llabel.text)
+                        param['options'] = opt_list
+                        params [id] = param
+        return params;        
 
 class Nanohubsession():
     credentials = {}
@@ -178,6 +263,13 @@ class Nanohubsession():
             session_id = launch_tool(driver_json, self.headers)
             return session_id
         return None
+        
+    def getSession(self, driver_json):
+        self.validateSession() 
+        if (self.authenticated):
+            session_id = launch_tool(driver_json, self.headers)
+            return session_id
+        return None        
         
     def getToolDefinition(self, tool):
         return load_tool_definition(tool, self.headers)
