@@ -1,3 +1,29 @@
+#  Copyright 2019 HUBzero Foundation, LLC.
+
+#  Permission is hereby granted, free of charge, to any person obtaining a copy
+#  of this software and associated documentation files (the "Software"), to deal
+#  in the Software without restriction, including without limitation the rights
+#  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#  copies of the Software, and to permit persons to whom the Software is
+#  furnished to do so, subject to the following conditions:
+#
+#  The above copyright notice and this permission notice shall be included in
+#  all copies or substantial portions of the Software.
+#
+#  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+#  THE SOFTWARE.
+
+#  HUBzero is a registered trademark of Purdue University.
+
+#  Authors:
+#  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
+
+
 from .nanohubtools import Nanohubtool, setInterval
 from .plotlywidget import FigureWidget
 from ipywidgets import IntText, Text, Output, Tab, Button, Accordion, GridBox, Layout, ButtonStyle, Label, HBox, VBox, HTML, Image, Textarea
@@ -383,9 +409,6 @@ class Qdotexplorer (Nanohubtool):
             component = self.getVTK(componentv , 'component')
             component_id = [c.attrib['id'] for c in componentv]
 
-
-            component = [component[0]]
-            component_id = [component_id[0]]
             for ii, datavtk in enumerate(component):
             
                 npdata = np.array(datavtk.splitlines())
@@ -400,13 +423,13 @@ class Qdotexplorer (Nanohubtool):
                 x = 2
                 y = 1
                 z = 0
-                X,Y,Z = np.mgrid[origin[x]:(spacing[x]*dimensions[x]):spacing[x], origin[y]:(spacing[y]*dimensions[y]):spacing[y], origin[z]:(spacing[z]*dimensions[z]):spacing[z]]
+                Z,Y,X = np.mgrid[origin[x]:((spacing[x]*dimensions[x])+origin[x]):dimensions[x]*1j, origin[y]:((spacing[y]*dimensions[y])+origin[y]):dimensions[y]*1j, origin[z]:((spacing[z]*dimensions[z])+origin[z]):dimensions[z]*1j]
                 self.X = X.flatten().tolist()
                 self.Y = Y.flatten().tolist()
                 self.Z = Z.flatten().tolist()
                 #min_val = np.amin(self.V)
                 #max_val = np.amax(self.V) 
-                ncontours = 12
+                ncontours = 20
                 colorscale = "Viridis"
                 showscale = True
                 type = 'volume'
@@ -415,12 +438,11 @@ class Qdotexplorer (Nanohubtool):
                 id = component_id[ii]
                 #print (id)
                 if id == 'shape':
-                    pass;
-                    #ncontours = 2
-                    #colorcale = "green"
-                    #showscale = False
-                    #opacity = 0.1
-                    #type = 'isosurface'
+                    ncontours = 1
+                    colorscale = "Greens"
+                    showscale = False
+                    opacity = 0.05
+                    type = 'isosurface'
                 trace = {
                     "type": type,
                     "name" : id,
@@ -447,7 +469,7 @@ class Qdotexplorer (Nanohubtool):
                         "z": { "show": False, }
                     },      
                     "colorscale": colorscale,
-                    "reversescale": True,
+                    "reversescale": False,
                     "opacity":opacity,
                                  
                     "lighting" :{
@@ -465,7 +487,10 @@ class Qdotexplorer (Nanohubtool):
                     "showscale":showscale,
                 }
                 if type == "volume":
-                    trace["opacityscale"]=[[0, 0.1], [0.5, 1], [1, 1]]
+                    trace["opacityscale"]=[[0, 0], [0.1, 0.5], [0.2, 1], [1, 1]]
+                else:
+                    trace['isomin'] = 0.99
+                    trace['isomax'] = 1.0
 
                 traces.append(trace)
             layout = {
@@ -690,11 +715,10 @@ class SimpleQuantumDot (Qdotexplorer):
         
     def displayOptions(self):
         html = '''
-        <b><font size = "3.5">Welcome to Quantum Dot Lab !</font></b>
-        <li>Quantum Dot Lab allows users to simulate quantum dots of various shapes and sizes and understand the impact of material properties and dimensions on optical absorption.</li>
-        <li>Users can choose a variety of materials and shapes, perform effective mass or a 10 band tight binding simulation.</li>
-        <li>We hope that this tool deepens your understanding on quantum dots and confined electronic systems.</li>
-        <li>For more information, please check out the User Guide or send a ticket to nanoHUB.</li>
+        <b><font size = "3.5">Welcome to Simple Quantum Dot App !</font></b>
+        <li>Simple Quantum Dot App allows users to simulate quantum dots of various shapes and sizes and understand the impact of material properties and dimensions on optical absorption.</li>
+        <li>Users can choose a variety of shapes, and perform effective mass simulations.</li>
+        <li>We hope that this tool deepens your understanding on quantum dots</li>
         '''
     
         
@@ -788,11 +812,10 @@ class StackedQuantumDot (Qdotexplorer):
         
     def displayOptions(self):
         html = '''
-        <b><font size = "3.5">Welcome to Quantum Dot Lab !</font></b>
-        <li>Quantum Dot Lab allows users to simulate quantum dots of various shapes and sizes and understand the impact of material properties and dimensions on optical absorption.</li>
+        <b><font size = "3.5">Welcome to Stacked Quantum Dot App !</font></b>
+        <li>Stacked Quantum Dot App allows users to simulate quantum dots of various shapes and sizes and understand the impact of material properties and dimensions on optical absorption.</li>
         <li>Users can choose a variety of materials and shapes, perform effective mass or a 10 band tight binding simulation.</li>
         <li>We hope that this tool deepens your understanding on quantum dots and confined electronic systems.</li>
-        <li>For more information, please check out the User Guide or send a ticket to nanoHUB.</li>
         '''
     
         
