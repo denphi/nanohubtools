@@ -24,14 +24,12 @@
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
 
-from .api import do_get, do_post, authenticate, launch_tool, get_results, check_status, load_results, load_tool_definition
-from .hubxml import get_driver, extract_results, extract_all_results
+from .api import authenticate, launch_tool, check_status, load_results, load_tool_definition
 from IPython.display import clear_output
 from floatview import Floatview
-from ipywidgets import Output, Tab, ToggleButton, Text, Dropdown, IntText, VBox, HBox, Accordion, Button, Layout
+from ipywidgets import Output, Tab, ToggleButton, Text, VBox, HBox, Button, Layout
+from hublib import ui
 import time, threading
-import xml.etree.ElementTree as ET
-import copy
 
 class Nanohubtool():
 
@@ -45,7 +43,6 @@ class Nanohubtool():
         self.options = {}
         self.window = None
         self.tab = None
-        self.xml  = None
         self.debug = kwargs.get('debug', None)
         self.modal = kwargs.get('modal', True)
         self.only_subsets = kwargs.get('only_subsets', False)
@@ -132,133 +129,48 @@ class Nanohubtool():
             self.options_check.description = "Show Parameters"
 
         
-    def generateDriver(self, experiment):
-        xml = copy.copy(self.xml)        
-        for parameter, value in experiment['parameters'].items():
-            if parameter in self.parameters:
-                if 'id' in self.parameters[parameter]:
-                    for elem in xml.iter():
-                        if 'id' in elem.attrib:
-                            if elem.attrib['id'] == self.parameters[parameter]['id']:
-                                current = ET.Element("current")
-                                current.text = str(value)
-                                elem.insert(0,current)
-        for elem in xml.iter():
-            if 'id' in elem.attrib:
-                if elem.find("current") is None:
-                    units = ""
-                    if elem.find("units") is not None:
-                        units = elem.find("units").text
-                    if elem.find("default") is not None:
-                        current = ET.Element("current")
-                        if units != "" and units not in elem.find("default").text:
-                            current.text = elem.find("default").text + units
-                        else:
-                            current.text = elem.find("default").text
-                        elem.insert(0,current)
-                
-        driver_str  = '<?xml version="1.0"?>\n' + ET.tostring(xml).decode()
-        driver_json = {'app': self.tool, 'xml': driver_str}
-        return driver_json;   
+    def createOptionWidgets(self):    
+        for param, parameter in self.parameters.items():
+            self.options[param] = self.createHublibWidget(param, parameter)    
 
-            
-    def extractParameters(self, parameters, xml):
-        inputs = xml.find('input')
-        params = {}
-        for elem in inputs.iter():
-            id = ''
-            if 'id' in elem.attrib:
-                id = elem.attrib['id']
-            about = elem.find("about")
-            if (about is not None):
-                description = elem.find('description')
-                if description is not None:
-                    description = description.text        
-                label = about.find("label")
-                if (label is not None):
-                    if (label.text in parameters):
-                        param = {"type": elem.tag, "description" : description}
-                        param['units'] = elem.find('units')
-                        param['id'] = id
-                        param['label'] = label.text                        
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
-                        param['units'] = elem.find('units')
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
-                        param['default'] = elem.find('default')
-                        if param['default'] is not None:
-                            param['default'] = param['default'].text
-                        param['min'] = elem.find('min')
-                        if param['min'] is not None:
-                            param['min'] = param['min'].text
-                        param['max'] = elem.find('max')
-                        if param['max'] is not None:
-                            param['max'] = param['max'].text
-                        param['current'] = elem.find('current')
-                        if param['current'] is not None:
-                            param['current'] = param['current'].text
-                        options = elem.findall('option')
-                        opt_list = []
-                        for option in options:
-                            labout = option.find("about")
-                            if (labout is not None):
-                                llabel = labout.find("label")
-                                if (llabel is not None):
-                                    if (llabel.text):
-                                        opt_list.append(llabel.text)
-                        param['options'] = opt_list
-                        params [label.text] = param
-        return params;
         
-    def extractParametersById(self, parameters, xml):
-        inputs = xml.find('input')
-        params = {}
-        for elem in inputs.iter():
-            id = ''
-            if 'id' in elem.attrib:
-                id = elem.attrib['id']
-            about = elem.find("about")
-            if (about is not None):
-                description = elem.find('description')
-                if description is not None:
-                    description = description.text        
-                label = about.find("label")
-                if (label is not None):
-                    if (id in parameters):
-                        param = {"type": elem.tag, "description" : description}
-                        param['units'] = elem.find('units')
-                        param['id'] = id
-                        param['label'] = label.text                        
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
-                        param['units'] = elem.find('units')
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
-                        param['default'] = elem.find('default')
-                        if param['default'] is not None:
-                            param['default'] = param['default'].text
-                        param['min'] = elem.find('min')
-                        if param['min'] is not None:
-                            param['min'] = param['min'].text
-                        param['max'] = elem.find('max')
-                        if param['max'] is not None:
-                            param['max'] = param['max'].text
-                        param['current'] = elem.find('current')
-                        if param['current'] is not None:
-                            param['current'] = param['current'].text
-                        options = elem.findall('option')
-                        opt_list = []
-                        for option in options:
-                            labout = option.find("about")
-                            if (labout is not None):
-                                llabel = labout.find("label")
-                                if (llabel is not None):
-                                    if (llabel.text):
-                                        opt_list.append(llabel.text)
-                        param['options'] = opt_list
-                        params [id] = param
-        return params;        
+    def createHublibWidget(self, name, parameter ):
+        if (parameter['description'] is None):
+            parameter['description'] = ''
+        if (parameter['units'] is None):
+            parameter['units'] = ''
+        if (parameter['units'] is not None):            
+            if (parameter['min'] is not None):
+                parameter['min'] = parameter['min'].replace(parameter['units'],"")
+            if (parameter['max'] is not None):
+                parameter['max'] = parameter['max'].replace(parameter['units'],"")
+            if (parameter['default'] is not None):
+                parameter['default'] = parameter['default'].replace(parameter['units'],"")
+        if (parameter['type'] == "integer"):
+            if (parameter['min'] == None) != (parameter['max'] == None):
+                if parameter['min'] == None:
+                    return ui.Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=0, max=parameter['max'])            
+                else:
+                    return ui.Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=100000)
+            else:
+                return ui.Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'])
+        elif (parameter['type'] == "choice"):
+            return ui.Dropdown(name=parameter['label'], description=parameter['description'], value=parameter['default'], options=parameter['options'])
+        elif (parameter['type'] == "number"):        
+            if (parameter['min'] == None) != (parameter['max'] == None):
+                if parameter['min'] == None:
+                    return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=0, max=parameter['max'], units=parameter['units'])
+                else:
+                    return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=100000, units=parameter['units'])
+            else:
+                return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'], units=parameter['units'])
+        elif (parameter['type'] == "string"):        
+            return ui.String(name=parameter['label'], value=parameter['default'], description=parameter['description'])
+        elif (parameter['type'] == "boolean"):        
+            return ui.Togglebuttons(name=parameter['label'], value="no", description=parameter['description'], options=['no', 'yes'])
+        else:
+            return Text(value='',placeholder=parameter['label'],description='',disabled=False)
+        
 
 class Nanohubsession():
     credentials = {}
@@ -285,13 +197,13 @@ class Nanohubsession():
                 self.authenticated = False        
                 raise ConnectionError("invalid Authentication")
                 
-    def getSessionId(self, tool, tool_inputs):
-        self.validateSession() 
-        if (self.authenticated):
-            driver_json = get_driver(tool, tool_inputs, self.headers)
-            session_id = launch_tool(driver_json, self.headers)
-            return session_id
-        return None
+    #def getSessionId(self, tool, tool_inputs):
+    #    self.validateSession() 
+    #    if (self.authenticated):
+    #        driver_json = get_driver(tool, tool_inputs, self.headers)
+    #        session_id = launch_tool(driver_json, self.headers)
+    #        return session_id
+    #    return None
         
     def getSession(self, driver_json):
         self.validateSession() 
@@ -299,10 +211,6 @@ class Nanohubsession():
             session_id = launch_tool(driver_json, self.headers)
             return session_id
         return None        
-        
-    def getToolDefinition(self, tool):
-        return load_tool_definition(tool, self.headers)
-        
         
             
     def checkStatus(self, session_id):
@@ -329,6 +237,10 @@ class Nanohubsession():
                 children.append(option)
         children.append(self.options_but)
         self.options_cont.children = children        
+
+
+    def getToolDefinition(self, tool):
+        return load_tool_definition(tool, self.headers)        
         
 class setInterval :
     def __init__(self,interval,action) :

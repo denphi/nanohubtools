@@ -36,13 +36,15 @@ class FigureWidget (plotly.graph_objs.FigureWidget):
         skip_invalid=False,
         **kwargs
     ):
-        old_get_jconfig = plotly.offline.offline._get_jconfig
-        _config = old_get_jconfig( {
+        default_config = {
             'editable':True, 
             'showLink':True, 
             'linkText' : 'Export Data',
             'displaylogo' : False
-        })
+        }
+        config = kwargs.get('config', default_config);
+        old_get_jconfig = plotly.offline.offline._get_jconfig
+        _config = old_get_jconfig( config )
         plotly.offline.offline._get_jconfig = lambda config = None : _config
-        super(FigureWidget, self).__init__(data, layout, frames, skip_invalid, **kwargs)
+        super(FigureWidget, self).__init__(data, layout, frames, skip_invalid)
         plotly.offline.offline._get_jconfig = old_get_jconfig

@@ -29,6 +29,7 @@
 
 from .nanohubtools import Nanohubtool
 from .qdottools import Qdotexplorer, SimpleQuantumDot, StackedQuantumDot
+from .pntoy import PNToy
 
 from ._version import __version__, version_info
 

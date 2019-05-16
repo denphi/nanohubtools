@@ -31,21 +31,21 @@ long_description = ""
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
-setup_args = dict(
-    name            = name,
-    description     = 'A set of tools to run nanoHubtools',
-    long_description=long_description,
-    long_description_content_type="text/markdown",
-    version         = version,
-    scripts         = glob(pjoin('scripts', '*')),
-    packages        = find_packages(),
-    author          = 'Project Jupyter contributor',
-    author_email    = 'denphi@denphi.com',
-    url             = 'https://github.com/denphi/nanohubtools',
-    license         = 'BSD',
-    platforms       = "Linux, Mac OS X, Windows",
-    keywords        = ['Jupyter', 'Widgets', 'IPython'],
-    classifiers     = [
+setup_args = {
+    'name'            : name,
+    'description'     : 'A set of tools to run nanoHubtools',
+    'long_description_content_type' : 'text/markdown',
+    'long_description':long_description,
+    'version'         : version,
+    'scripts'         : glob(pjoin('scripts', '*')),
+    'packages'        : find_packages(),
+    'author'          : 'Project Jupyter contributor',
+    'author_email'    : 'denphi@denphi.com',
+    'url'             : 'https://github.com/denphi/nanohubtools',
+    'license'         : 'BSD',
+    'platforms'       : "Linux, Mac OS X, Windows",
+    'keywords'        : ['Jupyter', 'Widgets', 'IPython'],
+    'classifiers'     : [
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
         'License :: OSI Approved :: BSD License',
@@ -56,14 +56,14 @@ setup_args = dict(
         'Programming Language :: Python :: 3.6',
         'Framework :: Jupyter',
     ],
-    include_package_data = True,
-    install_requires = [
+    'include_package_data' : True,
+    'install_requires' : [
         'floatview>=0.1.11',
         'plotly>=3.8.1',
         'numpy>=1.16.0',
         'hublib>=0.9.94',
     ],
-    extras_require = {
+    'extras_require' : {
         'test': [
         ],
         'examples': [
@@ -72,9 +72,9 @@ setup_args = dict(
         'docs': [
         ],
     },
-    entry_points = {
+    'entry_points' : {
     },
-)
+}
 
 if __name__ == '__main__':
     setup(**setup_args)
