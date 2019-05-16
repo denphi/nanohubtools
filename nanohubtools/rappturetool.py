@@ -725,6 +725,7 @@ class Rappturetool (Nanohubtool):
                                             if (llabel.text != ""):
                                                 opt_list.append(llabel.text)
                         param['options'] = opt_list
+
                         params [label.text] = param
         return params;
         
@@ -782,6 +783,9 @@ class Rappturetool (Nanohubtool):
 
 
                             param['options'] = opt_list
+                            if len(param['options']) > 0:
+                                if param['default'] not in param['options']:
+                                    param['default'] = param['options'][0]
                             params [id] = param
         return params;        
         
