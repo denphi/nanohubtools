@@ -25,7 +25,7 @@
 
 from .nanohubtools import Nanohubtool, setInterval
 from .plotlywidget import FigureWidget
-from ipywidgets import Output, Tab, Button, Accordion, GridBox, Layout, ButtonStyle, Label, HBox, VBox, Textarea
+from ipywidgets import Output, Tab, Button, Accordion, GridBox, Layout, ButtonStyle, Label, HBox, VBox, Textarea, SelectionSlider, Play
 import numpy as np
 import xml.etree.ElementTree as ET
 from floatview import Floatview
@@ -193,6 +193,8 @@ class Rappturetool (Nanohubtool):
 
         if (experiment['complete']):
             out_curves = VBox(layout=Layout(width='99%', height='100%'))
+            out_plots = VBox(layout=Layout(width='99%', height='100%'))
+            out_sequences = VBox(layout=Layout(width='99%', height='100%'))
             out_volumes = VBox(layout=Layout(width='99%', height='100%'))
             out_tables = VBox(layout=Layout(width='99%', height='100%'))
             out_logs = VBox(layout=Layout(width='99%', height='100%'))
@@ -229,24 +231,56 @@ class Rappturetool (Nanohubtool):
                             else:
                                 groups[g.text] = [el]
                                 
-                header = False
-                for k,g in groups.items():
-                    if len(g) > 1:
-                        if header == False:
-                            but = Button(description="Grouped", layout=Layout(width='auto'),style=ButtonStyle(button_color='lightblue'))
-                            header = True
-                        oc_children.append(but)
-                        but = Button(description=k, icon='check', disable=False, layout=layout)
-                        but.on_click(lambda a, b=self, c=g,d=experiment['modal'] : Rappturetool.plotXY(b,c,d))
-                        oc_children.append(but)
+                              
+                                          
+                                  
+                                           
+                                                                                                                                        
+                                         
+                                               
+                                                                                               
+                                                                                                              
+                                               
                 out_curves.children = oc_children
                 if len(oc_children) > 0:
                     acc_item  = acc_item+1
                     acc_children.append(out_curves)
                     acc_titles.append('Curves') 
-
             except:
                 pass;
+
+            op_children = []                                
+            try:
+                for k,g in groups.items():
+                    but = Button(description=k, icon='check', disable=False, layout=layout)
+                    but.on_click(lambda a, b=self, c=g,d=experiment['modal'] : Rappturetool.plotXY(b,c,d))
+                    op_children.append(but)
+                out_plots.children = op_children
+                if len(op_children) > 0:
+                    acc_item  = acc_item+1
+                    acc_children.append(out_plots)
+                    acc_titles.append('Plots') 
+            except:
+                pass;
+
+
+            os_children = []
+            try:
+                sequences = experiment['results'].findall('sequence')
+                groups = {}
+                for i in range(len(sequences)):
+                    el = sequences[i]
+                    but = Button(description=self.getText(el, ["about","label"]), icon='check', disable=False, layout=layout)
+                    but.on_click(lambda a, b=self, c=sequences[i],d=experiment['modal'] : Rappturetool.plotSequence(b,c,d))
+                    os_children.append(but)
+                out_sequences.children = os_children
+                if len(os_children) > 0:
+                    acc_item  = acc_item+1
+                    acc_children.append(out_sequences)
+                    acc_titles.append('Sequences')
+            except:
+                pass;
+
 
             ot_children = []
             try:            
@@ -404,7 +438,6 @@ class Rappturetool (Nanohubtool):
                 opacity = 1.0
                 fill = 1.0
                 id = component_id[ii]
-                #print (id)
                 if id == 'shape':
                     ncontours = 1
                     colorscale = "Greens"
@@ -531,7 +564,6 @@ class Rappturetool (Nanohubtool):
             text = text[hlen:-1]
             text = b64decode(text)
             text = zlib.decompress(text, zlib.MAX_WBITS | 32)
-            print (text)
         
         if out == None:
             out = Floatview(title=title, mode = 'split-bottom')
@@ -539,8 +571,86 @@ class Rappturetool (Nanohubtool):
         with out:            
             display(Textarea(value=text, layout=Layout(width='auto', height='400px')))
 
+    def updateFrame(self, change, frames, fig, play, sl):
+        if change["new"] in frames:
+            frame = frames[change["new"]]
+            indexes = []
+            changes = {'x':[], 'y':[]}
+            for i, trace in enumerate(frame):
+                changes['x'].append(trace['x'].tolist())
+                changes['y'].append(trace['y'].tolist())
+                indexes.append(i)
+            play.value = list(frames.keys()).index(change["new"])
+            sl.value = change["new"]
+            fig.plotly_restyle(changes, indexes)
+
+
+    def plotSequence(self, sequence, out, labels=None):
+        traces = []
+        layout = {}
+        frames = {}
+        options = []
+        elements = sequence.findall('element')
+        label = self.getText(sequence, ["index", "label"])
+        for seq in elements:
+            curves = seq.findall('curve')
+            oc_children = []
+            groups = {}
+            for i in range(len(curves)):
+                el = curves[i]
+                ab = el.find('about')
+                if ab is not None:
+                    for g  in ab.findall("group"):
+                        if g.text in groups:
+                            groups[g.text].append(el)
+                        else:
+                            groups[g.text] = [el]
+            if(len(groups)>0):
+                index = self.getText(seq, ["index"])
+                options.append(index)
+                tr, lay = self.buiildXYPlotly(groups[list(groups.keys())[0]])
+                if len(traces) == 0:
+                    layout = lay
+                    traces = tr
+                frames[index] = tr
+
+        fig = FigureWidget({
+            'data': traces,
+            'layout': layout
+        }) 
+
+        sl = SelectionSlider(options=options, value=options[0], description=label)
+        play = Play(interval=1000, value=0, min=0, max=len(frames), description=label )
+        sl.observe(lambda change, this=self, f=frames, g=fig, p=play, s=sl: Rappturetool.updateFrame(this, change, f, g, p, sl), "value")
+        play.observe(lambda change, this=self, f=frames, g=fig, p=play, s=sl: setattr(sl, 'value', list(f.keys())[change['new']]), "value")
+        sl.layout.width='99%'
+        container = VBox([fig,play,sl], layout=layout)   
+
+
+        if out == None:
+            out = Floatview(title=title, mode = 'split-bottom')
+        out.clear_output()
+        with out:
+            display(container)
+        return fig
 
     def plotXY(self, fields, out, labels=None):
+        traces, layout = self.buiildXYPlotly(fields, labels)
+        fig = FigureWidget({
+            'data': traces,
+            'layout': layout
+        })
+        if out == None:
+            out = Floatview(title=title, mode = 'split-bottom')
+        out.clear_output()    
+        but = Button(description="Compare Data", icon='check', disable=False, layout=layout)
+        but.on_click(lambda a, b=self, c=fields[0], d=out : Rappturetool.compareXY(b,c,d))
+        with out:
+            display(fig)
+            display(but)
+        return fig
+
+    def buiildXYPlotly(self, fields, labels=None):
         traces = []
         for i, field in enumerate(fields):
             component = self.getXY(field, 'component')
@@ -562,8 +672,9 @@ class Rappturetool (Nanohubtool):
                 xy = obj.strip()
                 xy = np.array(xy.splitlines())
                 xy = xy[(xy != '')]
-                xy = [np.fromstring(xy[i], dtype=float, sep=" ") for i in range(len(xy))]
+                xy = [np.fromstring(xy[i].replace("--", ""), dtype=float, sep=" ") for i in range(len(xy))]
                 xy = np.concatenate(xy)
+                #xy = xy[0:int(len(xy)/2)*2]
                 xy = xy.reshape(int(len(xy)/2),2)
                 trace1 = {
                     'type' : 'scatter',
@@ -590,19 +701,9 @@ class Rappturetool (Nanohubtool):
             },
             'legend' : { 'orientation' : 'h', 'x':0.1, 'y':1.1 },
         }    
-        fig = FigureWidget({
-            'data': traces,
-            'layout': layout
-        })
-        if out == None:
-            out = Floatview(title=title, mode = 'split-bottom')
-        out.clear_output()    
-        but = Button(description="Compare Data", icon='check', disable=False, layout=layout)
-        but.on_click(lambda a, b=self, c=fields[0], d=out : Rappturetool.compareXY(b,c,d))
-        with out:
-            display(fig)
-            display(but)
-        return fig
+        return traces, layout
+                           
+                  
 
             
     def updateRender(self):		
