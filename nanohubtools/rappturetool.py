@@ -169,7 +169,7 @@ class Rappturetool (Nanohubtool):
             self.displayExperiment(experiment)
             
 
-    def displayExperiment(self, experiment):
+    def displayExperiment(self, experiment, disable=[]):
 
         params_b = []
         
@@ -229,20 +229,10 @@ class Rappturetool (Nanohubtool):
                             if g.text in groups:
                                 groups[g.text].append(el)
                             else:
-                                groups[g.text] = [el]
-                                
-                              
-                                          
-                                  
-                                           
-                                                                                                                                        
-                                         
-                                               
-                                                                                               
-                                                                                                              
+                                groups[g.text] = [el]                                                                          
                                                
                 out_curves.children = oc_children
-                if len(oc_children) > 0:
+                if len(oc_children) > 0 and "curves" not in disable:
                     acc_item  = acc_item+1
                     acc_children.append(out_curves)
                     acc_titles.append('Curves') 
@@ -256,7 +246,7 @@ class Rappturetool (Nanohubtool):
                     but.on_click(lambda a, b=self, c=g,d=experiment['modal'] : Rappturetool.plotXY(b,c,d))
                     op_children.append(but)
                 out_plots.children = op_children
-                if len(op_children) > 0:
+                if len(op_children) > 0 and "plots" not in disable:
                     acc_item  = acc_item+1
                     acc_children.append(out_plots)
                     acc_titles.append('Plots') 
@@ -274,7 +264,7 @@ class Rappturetool (Nanohubtool):
                     but.on_click(lambda a, b=self, c=sequences[i],d=experiment['modal'] : Rappturetool.plotSequence(b,c,d))
                     os_children.append(but)
                 out_sequences.children = os_children
-                if len(os_children) > 0:
+                if len(os_children) > 0 and "sequences" not in disable:
                     acc_item  = acc_item+1
                     acc_children.append(out_sequences)
                     acc_titles.append('Sequences')
@@ -291,7 +281,7 @@ class Rappturetool (Nanohubtool):
                     but.on_click(lambda a, b=self, c=tables[i],d=experiment['modal'] : Rappturetool.plotTable(b,c,d))
                     ot_children.append(but)
                 out_tables.children = ot_children
-                if len(ot_children) > 0:
+                if len(ot_children) > 0 and "tables" not in disable:
                     acc_item  = acc_item+1
                     acc_children.append(out_tables)
                     acc_titles.append('Tables') 
@@ -314,7 +304,7 @@ class Rappturetool (Nanohubtool):
                     but.on_click(lambda a, b=self, c=v, d=component, e=experiment['modal'] : Rappturetool.plotVTK(b,c,d,e))
                     ov_children.append(but)
                 out_volumes.children = ov_children
-                if len(ov_children) > 0:
+                if len(ov_children) > 0 and "volumes" not in disable:
                     acc_item  = acc_item+1
                     acc_children.append(out_volumes)
                     acc_titles.append('Volumes') 
@@ -337,7 +327,7 @@ class Rappturetool (Nanohubtool):
                     but.on_click(lambda a, b=self, c=el.find('current'),d=experiment['modal'] : Rappturetool.plotLog(b,c,d))
                     ol_children.append(but)
                 out_logs.children = ol_children
-                if len(ol_children) > 0:
+                if len(ol_children) > 0 and "logs" not in disable:
                     acc_item  = acc_item+1
                     acc_children.append(out_logs)
                     acc_titles.append('Logs')
@@ -608,7 +598,7 @@ class Rappturetool (Nanohubtool):
             if(len(groups)>0):
                 index = self.getText(seq, ["index"])
                 options.append(index)
-                tr, lay = self.buiildXYPlotly(groups[list(groups.keys())[0]])
+                tr, lay = self.buildXYPlotly(groups[list(groups.keys())[0]])
                 if len(traces) == 0:
                     layout = lay
                     traces = tr
@@ -628,19 +618,22 @@ class Rappturetool (Nanohubtool):
 
 
         if out == None:
-            out = Floatview(title=title, mode = 'split-bottom')
+            out = Floatview(title=label, mode = 'split-bottom')
         out.clear_output()
         with out:
             display(container)
         return fig
 
     def plotXY(self, fields, out, labels=None):
-        traces, layout = self.buiildXYPlotly(fields, labels)
+        traces, layout = self.buildXYPlotly(fields, labels)
         fig = FigureWidget({
             'data': traces,
             'layout': layout
         })
         if out == None:
+            title = ""
+            for field in (fields):
+                title = self.getText(field, ["about","group"])                                                
             out = Floatview(title=title, mode = 'split-bottom')
         out.clear_output()    
         but = Button(description="Compare Data", icon='check', disable=False, layout=layout)
@@ -650,7 +643,7 @@ class Rappturetool (Nanohubtool):
             display(but)
         return fig
 
-    def buiildXYPlotly(self, fields, labels=None):
+    def buildXYPlotly(self, fields, labels=None):
         traces = []
         for i, field in enumerate(fields):
             component = self.getXY(field, 'component')

@@ -46,6 +46,7 @@ class Driftdiffusionlab (Rappturetool):
         self.parameters_additional = [
         ]
         parameters = self.parameters_structure + self.parameters_materials + self.parameters_ambient + self.parameters_additional
+        kwargs.setdefault('title', 'Drift diffusion lab')
         Rappturetool.__init__(self, credentials, "semi", parameters, extract_method="id", **kwargs)
 
 

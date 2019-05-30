@@ -61,6 +61,9 @@ class Qdotexplorer (Rappturetool):
         self.tool = "qdot"
         Rappturetool.__init__(self, credentials, self.tool, parameters, **kwargs)
 
+    def displayExperiment(self, experiment, disable=[]):
+        Rappturetool.displayExperiment(self, experiment, disable+["sequences"])
+
 class SimpleQuantumDot (Qdotexplorer):
     def __init__(self, credentials, **kwargs):
         self.parameters_structure = [
@@ -90,6 +93,7 @@ class SimpleQuantumDot (Qdotexplorer):
             'npts'
         ]
         parameters = self.parameters_structure + self.parameters_optical
+        kwargs.setdefault('title', 'Simple Quantum-dot lab')                                                            
         Qdotexplorer.__init__(self, credentials, parameters, extract_method="id", **kwargs)
                
 
@@ -196,6 +200,7 @@ class StackedQuantumDot (Qdotexplorer):
             'structchoice'
         ]
         parameters = self.parameters_structure + self.parameters_optical + self.parameters_layer + self.parameters_additional
+        kwargs.setdefault('title', 'Stacked Quantumdot lab')                                                            
         Qdotexplorer.__init__(self, credentials, parameters, extract_method="id", **kwargs)        
         self.options[self.parameters_additional[0]] = ui.String(name='Quantum Dot Structure', value='Multi-Layer Quantum Dot', description='Quantum Dot Structure')
         
@@ -276,3 +281,5 @@ class StackedQuantumDot (Qdotexplorer):
         sqdottab.set_title(1, "Structure")
                 
         self.options_cont.children = [sqdottab]
+        
+        

@@ -38,6 +38,7 @@ class PNToy (Rappturetool):
         self.parameters_additional = [
         ]
         parameters = self.parameters_structure + self.parameters_materials + self.parameters_ambient + self.parameters_additional
+        kwargs.setdefault('title', 'P-N junction')
         Rappturetool.__init__(self, credentials, "pntoy", parameters, extract_method="id", **kwargs)
 
         
