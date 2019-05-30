@@ -26,5 +26,9 @@ nt.Qdotexplorer(auth_data, parameters={'Number of States'}, modal=True, mode='sp
 nt.SimpleQuantumDot(auth_data, modal=False)
 # or
 nt.StackedQuantumDot(auth_data, modal=True)
+# or
+nt.PNToy(auth_data, modal=False)
+# or
+nt.Driftdiffusionlab(auth_data, modal=False)
 ```
 
