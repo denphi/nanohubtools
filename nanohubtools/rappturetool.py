@@ -30,18 +30,264 @@ import numpy as np
 import xml.etree.ElementTree as ET
 from floatview import Floatview
 from threading import Lock
+import math
+
 
 import copy
 from base64 import b64decode, b64encode
 import zlib
 
 class Rappturetool (Nanohubtool):
+
+    samples = 16
+    resize = .1
+    phi = np.linspace(0, 2*np.pi, samples)
+    theta = np.linspace(-np.pi/2, np.pi/2, samples)
+    thetat = np.linspace(0,2*np.pi,samples)
+    phit = np.linspace(0,np.pi,samples)
+    xt = np.outer(np.cos(thetat),np.sin(phit)) * 4 * resize
+    yt = np.outer(np.sin(thetat),np.sin(phit)) * 4 * resize
+    zt = np.outer(np.ones(samples),np.cos(phit)) * 4 * resize
+    cosphi = np.cos(phi) * resize
+    sinphi = np.sin(phi) * resize
+    phi, theta=np.meshgrid(phi, theta)
+    x = np.cos(theta) * np.sin(phi)
+    y = np.cos(theta) * np.cos(phi)
+    z = np.sin(theta)
+    x = x.flatten() * 4 * resize
+    y = y.flatten() * 4 * resize
+    z = z.flatten() * 4 * resize
+    discardtags = ["phase", "group", "option"]
+    jcpk = {
+        'H' : 'rgb([255,255,255)',
+        'He' : 'rgb(217,255,255)',
+        'Li' : 'rgb(204,128,255)',
+        'Be' : 'rgb(194,255,0)',
+        'B' : 'rgb(255,181,181)',
+        'C' : 'rgb(144,144,144)',
+        'N' : 'rgb(48,80,248)',
+        'O' : 'rgb(255,13,13)',
+        'F' : 'rgb(144,224,80)',
+        'Ne' : 'rgb(179,227,245)',
+        'Na' : 'rgb(171,92,242)',
+        'Mg' : 'rgb(138,255,0)',
+        'Al' : 'rgb(191,166,166)',
+        'Si' : 'rgb(240,200,160)',
+        'P' : 'rgb(255,128,0)',
+        'S' : 'rgb(255,255,48)',
+        'Cl' : 'rgb(31,240,31)',
+        'Ar' : 'rgb(128,209,227)',
+        'K' : 'rgb(143,64,212)',
+        'Ca' : 'rgb(61,255,0)',
+        'Sc' : 'rgb(230,230,230)',
+        'Ti' : 'rgb(191,194,199)',
+        'V' : 'rgb(166,166,171)',
+        'Cr' : 'rgb(138,153,199)',
+        'Mn' : 'rgb(156,122,199)',
+        'Fe' : 'rgb(224,102,51)',
+        'Co' : 'rgb(240,144,160)',
+        'Ni' : 'rgb(80,208,80)',
+        'Cu' : 'rgb(200,128,51)',
+        'Zn' : 'rgb(125,128,176)',
+        'Ga' : 'rgb(194,143,143)',
+        'Ge' : 'rgb(102,143,143)',
+        'As' : 'rgb(189,128,227)',
+        'Se' : 'rgb(255,161,0)',
+        'Br' : 'rgb(166,41,41)',
+        'Kr' : 'rgb(92,184,209)',
+        'Rb' : 'rgb(112,46,176)',
+        'Sr' : 'rgb(0,255,0)',
+        'Y' : 'rgb(148,255,255)',
+        'Zr' : 'rgb(148,224,224)',
+        'Nb' : 'rgb(115,194,201)',
+        'Mo' : 'rgb(84,181,181)',
+        'Tc' : 'rgb(59,158,158)',
+        'Ru' : 'rgb(36,143,143)',
+        'Rh' : 'rgb(10,125,140)',
+        'Pd' : 'rgb(0,105,133)',
+        'Ag' : 'rgb(192,192,192)',
+        'Cd' : 'rgb(255,217,143)',
+        'In' : 'rgb(166,117,115)',
+        'Sn' : 'rgb(102,128,128)',
+        'Sb' : 'rgb(158,99,181)',
+        'Te' : 'rgb(212,122,0)',
+        'I' : 'rgb(148,0,148)',
+        'Xe' : 'rgb(66,158,176)',
+        'Cs' : 'rgb(87,23,143)',
+        'Ba' : 'rgb(0,201,0)',
+        'La' : 'rgb(112,212,255)',
+        'Ce' : 'rgb(255,255,199)',
+        'Pr' : 'rgb(217,255,199)',
+        'Nd' : 'rgb(199,255,199)',
+        'Pm' : 'rgb(163,255,199)',
+        'Sm' : 'rgb(143,255,199)',
+        'Eu' : 'rgb(97,255,199)',
+        'Gd' : 'rgb(69,255,199)',
+        'Tb' : 'rgb(48,255,199)',
+        'Dy' : 'rgb(31,255,199)',
+        'Ho' : 'rgb(0,255,156)',
+        'Er' : 'rgb(0,230,117)',
+        'Tm' : 'rgb(0,212,82)',
+        'Yb' : 'rgb(0,191,56)',
+        'Lu' : 'rgb(0,171,36)',
+        'Hf' : 'rgb(77,194,255)',
+        'Ta' : 'rgb(77,166,255)',
+        'W' : 'rgb(33,148,214)',
+        'Re' : 'rgb(38,125,171)',
+        'Os' : 'rgb(38,102,150)',
+        'Ir' : 'rgb(23,84,135)',
+        'Pt' : 'rgb(208,208,224)',
+        'Au' : 'rgb(255,209,35)',
+        'Hg' : 'rgb(184,184,208)',
+        'Tl' : 'rgb(166,84,77)',
+        'Pb' : 'rgb(87,89,97)',
+        'Bi' : 'rgb(158,79,181)',
+        'Po' : 'rgb(171,92,0)',
+        'At' : 'rgb(117,79,69)',
+        'Rn' : 'rgb(66,130,150)',
+        'Fr' : 'rgb(66,0,102)',
+        'Ra' : 'rgb(0,125,0)',
+        'Ac' : 'rgb(112,171,250)',
+        'Th' : 'rgb(0,186,255)',
+        'Pa' : 'rgb(0,161,255)',
+        'U' : 'rgb(0,143,255)',
+        'Np' : 'rgb(0,128,255)',
+        'Pu' : 'rgb(0,107,255)',
+        'Am' : 'rgb(84,92,242)',
+        'Cm' : 'rgb(120,92,227)',
+        'Bk' : 'rgb(138,79,227)',
+        'Cf' : 'rgb(161,54,212)',
+        'Es' : 'rgb(179,31,212)',
+        'Fm' : 'rgb(179,31,186)',
+        'Md' : 'rgb(179,13,166)',
+        'No' : 'rgb(189,13,135)',
+        'Lr' : 'rgb(199,0,102)',
+        'Rf' : 'rgb(204,0,89)',
+        'Db' : 'rgb(209,0,79)',
+        'Sg' : 'rgb(217,0,69)',
+        'Bh' : 'rgb(224,0,56)',
+        'Hs' : 'rgb(230,0,46)',
+        'Mt' : 'rgb(235,0,38)'
+    }
+    
+    periodicelement = [
+        ('Hydrogen','H'),
+        ('Helium','He'),
+        ('Lithium','Li'),
+        ('Beryllium','Be'),
+        ('Boron','B'),
+        ('Carbon','C'),
+        ('Nitrogen','N'),
+        ('Oxygen','O'),
+        ('Fluorine','F'),
+        ('Neon','Ne'),
+        ('Sodium','Na'),
+        ('Magnesium','Mg'),
+        ('Aluminium','Al'),
+        ('Silicon','Si'),
+        ('Phosphorus','P'),
+        ('Sulfur','S'),
+        ('Chlorine','Cl'),
+        ('Argon','Ar'),
+        ('Potassium','K'),
+        ('Calcium','Ca'),
+        ('Scandium','Sc'),
+        ('Titanium','Ti'),
+        ('Vanadium','V'),
+        ('Chromium','Cr'),
+        ('Manganese','Mn'),
+        ('Iron','Fe'),
+        ('Cobalt','Co'),
+        ('Nickel','Ni'),
+        ('Copper','Cu'),
+        ('Zinc','Zn'),
+        ('Gallium','Ga'),
+        ('Germanium','Ge'),
+        ('Arsenic','As'),
+        ('Selenium','Se'),
+        ('Bromine','Br'),
+        ('Krypton','Kr'),
+        ('Rubidium','Rb'),
+        ('Strontium','Sr'),
+        ('Yttrium','Y'),
+        ('Zirconium','Zr'),
+        ('Niobium','Nb'),
+        ('Molybdenum','Mo'),
+        ('Technetium','Tc'),
+        ('Ruthenium','Ru'),
+        ('Rhodium','Rh'),
+        ('Palladium','Pd'),
+        ('Silver','Ag'),
+        ('Cadmium','Cd'),
+        ('Indium','In'),
+        ('Tin','Sn'),
+        ('Antimony','Sb'),
+        ('Tellurium','Te'),
+        ('Iodine','I'),
+        ('Xenon','Xe'),
+        ('Caesium','Cs'),
+        ('Barium','Ba'),
+        ('Lanthanum','La'),
+        ('Cerium','Ce'),
+        ('Praseodymium','Pr'),
+        ('Neodymium','Nd'),
+        ('Promethium','Pm'),
+        ('Samarium','Sm'),
+        ('Europium','Eu'),
+        ('Gadolinium','Gd'),
+        ('Terbium','Tb'),
+        ('Dysprosium','Dy'),
+        ('Holmium','Ho'),
+        ('Erbium','Er'),
+        ('Thulium','Tm'),
+        ('Ytterbium','Yb'),
+        ('Lutetium','Lu'),
+        ('Hafnium','Hf'),
+        ('Tantalum','Ta'),
+        ('Tungsten','W'),
+        ('Rhenium','Re'),
+        ('Osmium','Os'),
+        ('Iridium','Ir'),
+        ('Platinum','Pt'),
+        ('Gold','Au'),
+        ('Mercury','Hg'),
+        ('Thallium','Tl'),
+        ('Lead','Pb'),
+        ('Bismuth','Bi'),
+        ('Polonium','Po'),
+        ('Astatine','At'),
+        ('Radon','Rn'),
+        ('Francium','Fr'),
+        ('Radium','Ra'),
+        ('Actinium','Ac'),
+        ('Thorium','Th'),
+        ('Protactinium','Pa'),
+        ('Uranium','U'),
+        ('Neptunium','Np'),
+        ('Plutonium','Pu'),
+        ('Americium','Am'),
+        ('Curium','Cm'),
+        ('Berkelium','Bk'),
+        ('Californium','Cf'),
+        ('Einsteinium','Es'),
+        ('Fermium','Fm'),
+        ('Mendelevium','Md'),
+        ('Nobelium','No'),
+        ('Lawrencium','Lr'),
+        ('Rutherfordium','Rf'),
+        ('Dubnium','Db'),
+        ('Seaborgium','Sg'),
+        ('Bohrium','Bh'),
+        ('Hassium','Hs'),
+        ('Meitnerium','Mt')        
+    ]    
     
     def __init__(self, credentials, tool, parameters, **kwargs):
         Nanohubtool.__init__(self, credentials, **kwargs)
         self.experiment_container = None
         self.debug_output = Output()
         self.tool = tool
+        reset_options = True
         
         if (self.session):    
             xml = self.session.getToolDefinition(self.tool)
@@ -198,6 +444,8 @@ class Rappturetool (Nanohubtool):
             out_volumes = VBox(layout=Layout(width='99%', height='100%'))
             out_tables = VBox(layout=Layout(width='99%', height='100%'))
             out_logs = VBox(layout=Layout(width='99%', height='100%'))
+            out_drawings = VBox(layout=Layout(width='99%', height='100%'))
+            
             accordion = Accordion(layout=Layout(width='300px'))
             acc_children = []
             acc_titles = []
@@ -253,6 +501,31 @@ class Rappturetool (Nanohubtool):
             except:
                 pass;
 
+            od_children = []    
+            try:            
+                drawings = experiment['results'].findall('drawing')
+                groups = {}
+                for i in range(len(drawings)):
+                    el = drawings[i]
+                    but = Button(description=self.getText(el, ["about","label"]), icon='check', disable=False, layout=layout)
+                    but.on_click(lambda a, b=self, c=el,d=experiment['modal'] : Rappturetool.plotDrawing(b,c,d))
+                    od_children.append(but)
+                    ab = el.find('about')
+                    if ab is not None:
+                        for g  in ab.findall("group"):
+                            if g.text in groups:
+                                groups[g.text].append(el)
+                            else:
+                                groups[g.text] = [el]                                                                          
+                                               
+                out_drawings.children = od_children
+                if len(od_children) > 0 and "drawings" not in disable:
+                    acc_item  = acc_item+1
+                    acc_children.append(out_drawings)
+                    acc_titles.append('Drawings') 
+            except:
+                pass;
+                
 
             os_children = []
             try:
@@ -337,7 +610,8 @@ class Rappturetool (Nanohubtool):
             accordion.children = acc_children
             for i in range (acc_item):
                 accordion.set_title(i, acc_titles[i])
-            accordion.selected_index=0
+            if acc_item > 0:
+                accordion.selected_index=0
         else:
             with experiment['output']:
                 display(accordionParam)
@@ -349,10 +623,11 @@ class Rappturetool (Nanohubtool):
             if key in self.parameters and self.parameters[key]['units'] is not None:
                 units = str(self.parameters[key]['units'])
             parameters[key] = str(val.value) + units
-            try:
-                self.options[key].value = ''
-            except:
-                pass;
+            if self.reset_options:
+                try:
+                    self.options[key].value = ''
+                except:
+                    pass;
         experiment = { 'parameters':parameters }
         self.addExperiment(experiment)
 
@@ -697,7 +972,244 @@ class Rappturetool (Nanohubtool):
         return traces, layout
                            
                   
+    def plotDrawing(self, draw, out):
+        label = self.getText(draw, ["index", "label"])
+        if out == None:
+            out = Floatview(title=label, mode = 'split-bottom')
+        out.clear_output()     
+        layout = { 'height' : 600 }
+        traces = []
+        molecules = draw.findall('molecule')
+        for molecule in molecules:
+            atoms = {}
+            connections = {}            
+            pdb = molecule.find('pdb')
+            if pdb is not None:
+                pdbt = self.getText(pdb, [])
+                lines = pdbt.split('\n')
+                for line in lines:
+                    if line.startswith("ATOM"):
+                        cols = line.split()
+                        atoms[int(cols[1])] = [float(cols[5]),float(cols[6]),float(cols[7]), cols[2], Rappturetool.jcpk[cols[2]], "enabled"]
+                    elif line.startswith("CONECT"):
+                        cols = line.split()
+                        connections[int(cols[1])] = [int(c) for c in cols[2:]]
+            else:
+                vtk = molecule.find('vtk')
+                if vtk is not None:
+                    jcpkkeys = list(Rappturetool.jcpk.keys())
+                    vtkt = self.getText(vtk, [])
+                    lines = vtkt.split('\n')
+                    i=0
+                    points = []
+                    vertices = []
+                    while i < len(lines):
+                        line = lines[i]
+                        if line.startswith("POINTS"):
+                            tpoints = int(line.split()[1])
+                            for ii in range(math.ceil(tpoints/3)):
+                                i = i+1                                    
+                                line = lines[i]
+                                pp = line.split()
+                                if len(points) < tpoints:
+                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
+                                if len(points) < tpoints:
+                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
+                                if len(points) < tpoints:
+                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
 
+                        elif line.startswith("VERTICES"):
+                            tvert = int(line.split()[1])
+                            for ii in range(tvert):
+                                i = i+1                                    
+                                line = lines[i]
+                                pp = line.split()
+                                pp = [int(p) for p in pp]                                    
+                                atoms[pp[1]] = [points[ii][0],points[ii][1],points[ii][2], 'Si', 'rgb(240,200,160)', "enabled"]
+                            for j, point in enumerate(points):
+                                if j not in atoms.keys():
+                                    atoms[j] = [point[0],point[1],point[2], '', 'rgb(0,0,0)', "disabled"]
+                        elif line.startswith("LINES"):
+                            tlines = int(line.split()[1])
+                            for ii in range(tlines):
+                                i = i+1                                    
+                                line = lines[i]
+                                pp = line.split()
+                                pp = [int(p) for p in pp]
+                                if pp[1] in connections:
+                                    connections[pp[1]].append(pp[2])
+                                else:
+                                    connections[pp[1]] = [pp[2]]
+                        elif line.startswith("atom_type"):
+                            ttype = int(line.split()[2])
+                            for ii in range(math.ceil(ttype/9)):
+                                i = i+1                                    
+                                line = lines[i]
+                                pp = line.split()
+                                pp = [int(p) for p in pp]
+                                for k in range (9):
+                                    atom_id = (9*ii+k)                                      
+                                    if atom_id in atoms and pp[k] <= len(Rappturetool.jcpk):
+                                        atoms[atom_id][3] = jcpkkeys[pp[k]-1] 
+                                        atoms[atom_id][4] = Rappturetool.jcpk[atoms[atom_id][3]]
+
+                        i = i+1
+            xt = None
+            yt = None
+            zt = None
+            st = None
+            color = {}
+            colorset = set()
+            for id, atom in atoms.items():
+                colorset.add(atom[4])
+            colorset = list(colorset)
+            for id, atom in atoms.items():
+                color[id] = colorset.index(atom[4])/len(colorset)
+                
+            colorscale = [[ii/len(colorset),colorset[ii]] for ii in range(len(colorset))]
+            colorscale.append([1.0, colorset[len(colorset)-1]])
+        
+            xt = {}
+            yt = {}
+            zt = {}
+            st = {}
+
+            for id, atom in atoms.items():
+                if atom[5] == "enabled":
+                    xv = (Rappturetool.xt + atom[0]).tolist()
+                    yv = (Rappturetool.yt + atom[1]).tolist()
+                    zv = (Rappturetool.zt + atom[2]).tolist()
+                    xv.extend([[point for point in xv[0]],[point for point in xv[1]],[]])
+                    yv.extend([[point for point in yv[0]],[point for point in yv[1]],[]])
+                    zv.extend([[point for point in zv[0]],[point for point in zv[1]],[]]) 
+                    if atom[3] in xt:
+                        xt[atom[3]].extend(xv)
+                        yt[atom[3]].extend(yv)
+                        zt[atom[3]].extend(zv) 
+                    else :
+                        xt[atom[3]] = xv
+                        yt[atom[3]] = yv
+                        zt[atom[3]] = zv
+                        
+            for atom in list(xt.keys()):
+
+                colorscalea = [[0,Rappturetool.jcpk[atom]], [1,Rappturetool.jcpk[atom]]]
+
+                trace = { 
+                    'type':'surface',
+                    'x': xt[atom], 
+                    'y': yt[atom], 
+                    'z': zt[atom], 
+                    'text' : atom,
+                    'showscale' : False,
+                    'hoverinfo' : "text",
+                    'colorscale' : colorscalea,
+                    'connectgaps' : False
+
+                }
+                traces.append(trace)
+                    
+            xt = []
+            yt = []
+            zt = []
+            st = []
+            for atom1, connection in connections.items():
+                for atom2 in connection:
+                    at1 = atom1
+                    at2 = atom2
+                    u = np.array([atoms[at2][i]-atoms[at1][i] for i in range(3)])        
+                    u /= np.linalg.norm(u)
+                    v1 = np.random.randn(3)  # take a random vector
+                    v1 -= v1.dot(u) * u       # make it orthogonal to k
+                    v1 /= np.linalg.norm(v1)
+                    v2 = np.cross(v1, u)
+                    v2 /= np.linalg.norm(v2)
+                    sample = int(Rappturetool.samples/2)
+                    xd = np.linspace(atoms[at2][0], atoms[at1][0], sample)
+                    yd = np.linspace(atoms[at2][1], atoms[at1][1], sample)
+                    zd = np.linspace(atoms[at2][2], atoms[at1][2], sample)
+                    for i in range(sample):
+                        xt.append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
+                        yt.append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
+                        zt.append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
+                        if i <= sample/2:
+                            st.append( [color[at2] for c in range(Rappturetool.samples)])
+                        else:
+                            st.append( [color[at1] for c in range(Rappturetool.samples)])
+                    xt.append([])
+                    zt.append([])
+                    yt.append([])
+                    st.append( [color[at1] for c in range(Rappturetool.samples)])
+                            
+
+            trace = { 
+                'type':'surface',
+                'x': xt, 
+                'y': yt, 
+                'z': zt, 
+                'showscale' : False,                
+                'colorscale' : colorscale,
+                'surfacecolor' : st,
+                'hoverinfo' : 'text',
+                'text' : '',                                
+            }
+            traces.append(trace)   
+            polygons = draw.findall('polygon')
+            for polygon in polygons:
+                points = {}
+                connections = {}            
+                vtk = polygon.find('vtk')
+                if vtk is not None:
+                    vtkt = self.getText(vtk, [])
+                    lines = vtkt.split('\n')
+                    i=0
+                    points = []
+                    while i < len(lines):
+                        line = lines[i]
+                        if line.startswith("POINTS"):
+                            tpoints = int(line.split()[1])
+                            for ii in range(math.ceil(tpoints/3)):
+                                i = i+1                                    
+                                line = lines[i]
+                                pp = line.split()
+                                if len(points) < tpoints:
+                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
+                                if len(points) < tpoints:
+                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
+                                if len(points) < tpoints:
+                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
+                        i=i+1             
+
+                    xt = [point[0] for point in points]
+                    yt = [point[1] for point in points]
+                    zt = [point[2] for point in points]
+
+                    trace = { 
+                        'type':'mesh3d',
+                        'x': xt, 
+                        'y': yt, 
+                        'z': zt, 
+                        'color' : 'lightgrey',
+                        'text' : '',
+                        'hoverinfo' : 'text'
+                    }
+                    if len(set(xt)) == 1 : 
+                        trace['delaunayaxis'] = 'x'
+                    elif len(set(yt)) == 1 : 
+                        trace['delaunayaxis'] = 'y'
+                    elif len(set(zt)) == 1 : 
+                        trace['delaunayaxis'] = 'z'
+
+                    traces.append(trace)
+
+            fig = FigureWidget({
+                'data': traces,
+                'layout': layout
+            })      
+
+        with out:            
+            display(fig)
+        return fig
             
     def updateRender(self):		
         self.createToolWidget()
@@ -743,25 +1255,27 @@ class Rappturetool (Nanohubtool):
                 if 'id' in self.parameters[parameter]:
                     for elem in xml.iter():
                         if 'id' in elem.attrib:
-                            if elem.attrib['id'] == self.parameters[parameter]['id']:
-                                current = ET.Element("current")
-                                current.text = str(value)
-                                elem.insert(0,current)
-                                break;
+                            if elem.tag not in Rappturetool.discardtags:
+                                if elem.attrib['id'] == self.parameters[parameter]['id']:
+                                    current = ET.Element("current")
+                                    current.text = str(value)
+                                    elem.insert(0,current)
+                                    #break;
 
         for elem in xml.iter():
             if 'id' in elem.attrib:
-                if elem.find("current") is None:
-                    units = ""
-                    if elem.find("units") is not None:
-                        units = elem.find("units").text
-                    if elem.find("default") is not None:
-                        current = ET.Element("current")
-                        if units != "" and units not in elem.find("default").text:
-                            current.text = elem.find("default").text + units
-                        else:
-                            current.text = elem.find("default").text
-                        elem.insert(0,current)
+                if elem.tag not in Rappturetool.discardtags:            
+                    if elem.find("current") is None:
+                        units = ""
+                        if elem.find("units") is not None:
+                            units = elem.find("units").text
+                        if elem.find("default") is not None:
+                            current = ET.Element("current")
+                            if units != "" and units not in elem.find("default").text:
+                                current.text = elem.find("default").text + units
+                            else:
+                                current.text = elem.find("default").text
+                            elem.insert(0,current)
                 
         driver_str  = '<?xml version="1.0"?>\n' + ET.tostring(xml).decode()
         driver_json = {'app': self.tool, 'xml': driver_str}
@@ -783,62 +1297,7 @@ class Rappturetool (Nanohubtool):
                 label = about.find("label")
                 if (label is not None):
                     if (label.text in parameters):
-                        param = {"type": elem.tag, "description" : description}
-                        param['units'] = elem.find('units')
-                        param['id'] = id
-                        param['label'] = label.text                        
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
-                        param['units'] = elem.find('units')
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
-                        param['default'] = elem.find('default')
-                        if param['default'] is not None:
-                            param['default'] = param['default'].text
-                        param['min'] = elem.find('min')
-                        if param['min'] is not None:
-                            param['min'] = param['min'].text
-                        param['max'] = elem.find('max')
-                        if param['max'] is not None:
-                            param['max'] = param['max'].text
-                        param['current'] = elem.find('current')
-                        if param['current'] is not None:
-                            param['current'] = param['current'].text
-                        options = elem.findall('option')
-                        opt_list = []
-                        for option in options:
-                            lvalue = option.find("value")
-                            if (lvalue is not None):
-                                if (lvalue.text != ""):
-                                    opt_list.append(lvalue.text)
-                            else:
-                                labout = option.find("about")
-                                if (labout is not None):
-                                        llabel = labout.find("label")
-                                        if (llabel is not None):
-                                            if (llabel.text != ""):
-                                                opt_list.append(llabel.text)
-                        param['options'] = opt_list
-
-                        params [label.text] = param
-        return params;
-        
-    def extractParametersById(self, parameters, xml):
-        inputs = xml.find('input')
-        params = {}
-        for elem in inputs.iter():
-            id = ''
-            if 'id' in elem.attrib:
-                id = elem.attrib['id']
-            if id not in params:
-                about = elem.find("about")
-                if (about is not None):
-                    description = elem.find('description')
-                    if description is not None:
-                        description = description.text        
-                    label = about.find("label")
-                    if (label is not None):
-                        if (id in parameters):
+                        if elem.tag not in Rappturetool.discardtags:
                             param = {"type": elem.tag, "description" : description}
                             param['units'] = elem.find('units')
                             param['id'] = id
@@ -864,23 +1323,91 @@ class Rappturetool (Nanohubtool):
                             opt_list = []
                             for option in options:
                                 lvalue = option.find("value")
+                                opt_val = ['', '']
                                 if (lvalue is not None):
                                     if (lvalue.text != ""):
-                                        opt_list.append(lvalue.text)
-                                else:
+                                        opt_val[0] = lvalue.text
+                                        opt_val[1] = lvalue.text
+                                labout = option.find("about")
+                                if (labout is not None):
+                                    llabel = labout.find("label")
+                                    if (llabel is not None):
+                                        if (llabel.text != ""):
+                                            opt_val[0] = llabel.text
+                                            if opt_val[1] == '':
+                                                opt_val[1] = llabel.text                                            
+                                opt_list.append((opt_val[0], opt_val[1]))
+                            param['options'] = opt_list
+
+                            params [label.text] = param
+        return params;
+        
+    def extractParametersById(self, parameters, xml):
+        inputs = xml.find('input')
+        params = {}
+        for elem in inputs.iter():
+            id = ''
+            if 'id' in elem.attrib:
+                id = elem.attrib['id']
+            if id not in params:
+                about = elem.find("about")
+                if (about is not None):
+                    description = elem.find('description')
+                    if description is not None:
+                        description = description.text        
+                    label = about.find("label")
+                    if (label is not None):
+                        if (id in parameters):
+                            if elem.tag not in Rappturetool.discardtags:
+                                param = {"type": elem.tag, "description" : description}
+                                param['units'] = elem.find('units')
+                                param['id'] = id
+                                param['label'] = label.text                        
+                                if param['units'] is not None:
+                                    param['units'] = param['units'].text
+                                param['units'] = elem.find('units')
+                                if param['units'] is not None:
+                                    param['units'] = param['units'].text
+                                param['default'] = elem.find('default')
+                                if param['default'] is not None:
+                                    param['default'] = param['default'].text
+                                param['min'] = elem.find('min')
+                                if param['min'] is not None:
+                                    param['min'] = param['min'].text
+                                param['max'] = elem.find('max')
+                                if param['max'] is not None:
+                                    param['max'] = param['max'].text
+                                param['current'] = elem.find('current')
+                                if param['current'] is not None:
+                                    param['current'] = param['current'].text
+                                options = elem.findall('option')
+                                opt_list = []
+                                for option in options:
+                                    lvalue = option.find("value")
+                                    opt_val = ['', '']                                    
+                                    if (lvalue is not None):
+                                        if (lvalue.text != ""):
+                                            opt_val[0] = lvalue.text
+                                            opt_val[1] = lvalue.text
                                     labout = option.find("about")
                                     if (labout is not None):
-                                            llabel = labout.find("label")
-                                            if (llabel is not None):
-                                                if (llabel.text != ""):
-                                                    opt_list.append(llabel.text)
+                                        llabel = labout.find("label")
+                                        if (llabel is not None):
+                                            if (llabel.text != ""):
+                                                opt_val[0] = llabel.text
+                                                if opt_val[1] == '':
+                                                    opt_val[1] = llabel.text
+                                    opt_list.append((opt_val[0], opt_val[1]))
+                                param['options'] = opt_list
 
-
-                            param['options'] = opt_list
-                            if len(param['options']) > 0:
-                                if param['default'] not in param['options']:
-                                    param['default'] = param['options'][0]
-                            params [id] = param
+                                if param['type'] == "periodicelement" :
+                                    param['type'] = 'choice'
+                                    param['options'] = Rappturetool.periodicelement
+                                
+                                if len(param['options']) > 0:
+                                    if param['default'] not in [p[1] for p in param['options']]:
+                                        param['default'] = param['options'][0][1]
+                                params [id] = param
         return params;        
         
     def getResults(self, session_id, run_file):
