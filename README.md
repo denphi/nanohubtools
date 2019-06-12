@@ -41,6 +41,7 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 ```python
     nt.CrystalViewerBravais(auth_data, modal=False)
 ```
+![CrystalViewerBravais](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/CrystalViewerBravais.gif)
 
 
 ### CrystalViewerConstructor, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
@@ -52,6 +53,7 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 ```python
     nt.SimpleQuantumDot(auth_data, modal=False)
 ```
+![SimpleQuantumDot](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/SimpleQuantumDot.gif)
 
 ### StackedQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python
@@ -63,10 +65,13 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 ```python
     nt.PNToy(auth_data, modal=False)
 ```
+![PNToy](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/PNToy.gif)
 
 
 ### Driftdiffusionlab, supported by [Drift-Diffusion Lab] (https://nanohub.org/resources/semi)
 ```python
     nt.Driftdiffusionlab(auth_data, modal=False)
 ```
+![Driftdiffusionlab](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/Driftdiffusionlab.gif)
+
 

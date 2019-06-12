@@ -287,7 +287,7 @@ class Rappturetool (Nanohubtool):
         self.experiment_container = None
         self.debug_output = Output()
         self.tool = tool
-        reset_options = True
+        self.reset_options = True
         
         if (self.session):    
             xml = self.session.getToolDefinition(self.tool)
