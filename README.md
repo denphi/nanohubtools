@@ -30,42 +30,42 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 
 ## Available Nanohub Tools
 
-#CrystalViewerMaterial (supported by https://nanohub.org/resources/crystal_viewer)
+### CrystalViewerMaterial, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
 ```python
     nt.CrystalViewerMaterial(auth_data, modal=False)
 ```
 ![CrystalViewerMaterial](images/CrystalViewerMaterial.png)
 
 
-#CrystalViewerBravais (supported by https://nanohub.org/resources/crystal_viewer)
+### CrystalViewerBravais, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
 ```python
     nt.CrystalViewerBravais(auth_data, modal=False)
 ```
 
 
-#CrystalViewerConstructor (supported by https://nanohub.org/resources/crystal_viewer)
+### CrystalViewerConstructor, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
 ```python
     nt.CrystalViewerConstructor(auth_data, modal=False)
 ```
 
-#SimpleQuantumDot (supported by https://nanohub.org/resources/qdot/)
+### SimpleQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python
     nt.SimpleQuantumDot(auth_data, modal=False)
 ```
 
-#StackedQuantumDot (supported by https://nanohub.org/resources/qdot/)
+### StackedQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python
     nt.StackedQuantumDot(auth_data, modal=False)
 ```
 
 
-#PNToy (supported by https://nanohub.org/resources/pntoy)
+### PNToy, supported by [PN Junction Lab] (https://nanohub.org/resources/pntoy)
 ```python
     nt.PNToy(auth_data, modal=False)
 ```
 
 
-#Driftdiffusionlab (supported by https://nanohub.org/resources/semi)
+### Driftdiffusionlab, supported by [Drift-Diffusion Lab] (https://nanohub.org/resources/semi)
 ```python
     nt.Driftdiffusionlab(auth_data, modal=False)
 ```
