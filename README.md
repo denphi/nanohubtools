@@ -34,7 +34,7 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 ```python
     nt.CrystalViewerMaterial(auth_data, modal=False)
 ```
-![CrystalViewerMaterial](images/CrystalViewerMaterial.png)
+![CrystalViewerMaterial](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/CrystalViewerMaterial.gif)
 
 
 ### CrystalViewerBravais, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
