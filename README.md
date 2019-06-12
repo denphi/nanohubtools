@@ -24,8 +24,8 @@ auth_data = {
   'password': XXXXXXXX
 }
 
-# to get username and password, register on [nanohub.org](https://nanohub.org/register/)
-# to get client id and secret, create a web interface / application on [nanohub.org](https://nanohub.org/developer/api/applications/new), and use "https://127.0.0.1" as Redirect URL 
+# to get username and password, register on nanohub.org (https://nanohub.org/register/)
+# to get client id and secret, create a web application (https://nanohub.org/developer/api/applications/new), use "https://127.0.0.1" as Redirect URL
 
 tool = nt.Qdotexplorer(auth_data, parameters={'Number of States'}, modal=True, mode='split-right')
 
