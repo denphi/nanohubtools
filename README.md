@@ -12,7 +12,9 @@ pip install nanohubtools
 ## Usage
 
 
+
 ```python
+
 import nanohubtools as nt
 auth_data = {
   'client_id': XXXXXXXX,
@@ -21,10 +23,17 @@ auth_data = {
   'username': XXXXXXXX,
   'password': XXXXXXXX
 }
+
+# to get username and password, register on [nanohub.org](https://nanohub.org/register/)
+# to get client id and secret, create a web interface / application on [nanohub.org](https://nanohub.org/developer/api/applications/new), and use "https://127.0.0.1" as Redirect URL 
+
+tool = nt.Qdotexplorer(auth_data, parameters={'Number of States'}, modal=True, mode='split-right')
+
 # modal defines if the container outputs to use FloatView or standard ipywidgets Output
 # mode defines the positions of new windows of Floatview is enabled
-tool = nt.Qdotexplorer(auth_data, parameters={'Number of States'}, modal=True, mode='split-right')
+
 tool.loadExperiment('IDSESSION') If an experiment was created befores
+
 ```
 
 
