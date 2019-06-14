@@ -27,9 +27,17 @@
 from .api import authenticate, launch_tool, check_status, load_results, load_tool_definition
 from IPython.display import clear_output
 from floatview import Floatview
-from ipywidgets import Output, Tab, ToggleButton, Text, VBox, HBox, Button, Layout
+from ipywidgets import Output, Tab, ToggleButton, Text, VBox, HBox, Button, Layout, Textarea
 from hublib import ui
 import time, threading
+
+from ipywidgets import Textarea
+from  hublib.ui.formvalue import FormValue
+class TextArea(FormValue):
+    def __init__(self, name, value, **kwargs):
+        self.dd = Textarea(value=value.strip())
+        FormValue.__init__(self, name, **kwargs)
+        
 
 class Nanohubtool():
 
@@ -166,6 +174,8 @@ class Nanohubtool():
                 return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'], units=parameter['units'])
         elif (parameter['type'] == "string"):        
             return ui.String(name=parameter['label'], value=parameter['default'], description=parameter['description'])
+        elif (parameter['type'] == "text"):        
+            return TextArea(name=parameter['label'], value=parameter['default'], description=parameter['description'])
         elif (parameter['type'] == "boolean"):        
             return ui.Togglebuttons(name=parameter['label'], value="no", description=parameter['description'], options=['no', 'yes'])
         else:

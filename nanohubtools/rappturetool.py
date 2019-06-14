@@ -1282,67 +1282,24 @@ class Rappturetool (Nanohubtool):
         return driver_json;   
 
             
-    def extractParameters(self, parameters, xml):
+    def extractParameters(self, parameters, xml, forcelabels= True):
         inputs = xml.find('input')
         params = {}
+        ids = []
         for elem in inputs.iter():
             id = ''
             if 'id' in elem.attrib:
                 id = elem.attrib['id']
             about = elem.find("about")
             if (about is not None):
-                description = elem.find('description')
-                if description is not None:
-                    description = description.text        
                 label = about.find("label")
                 if (label is not None):
                     if (label.text in parameters):
-                        if elem.tag not in Rappturetool.discardtags:
-                            param = {"type": elem.tag, "description" : description}
-                            param['units'] = elem.find('units')
-                            param['id'] = id
-                            param['label'] = label.text                        
-                            if param['units'] is not None:
-                                param['units'] = param['units'].text
-                            param['units'] = elem.find('units')
-                            if param['units'] is not None:
-                                param['units'] = param['units'].text
-                            param['default'] = elem.find('default')
-                            if param['default'] is not None:
-                                param['default'] = param['default'].text
-                            param['min'] = elem.find('min')
-                            if param['min'] is not None:
-                                param['min'] = param['min'].text
-                            param['max'] = elem.find('max')
-                            if param['max'] is not None:
-                                param['max'] = param['max'].text
-                            param['current'] = elem.find('current')
-                            if param['current'] is not None:
-                                param['current'] = param['current'].text
-                            options = elem.findall('option')
-                            opt_list = []
-                            for option in options:
-                                lvalue = option.find("value")
-                                opt_val = ['', '']
-                                if (lvalue is not None):
-                                    if (lvalue.text != ""):
-                                        opt_val[0] = lvalue.text
-                                        opt_val[1] = lvalue.text
-                                labout = option.find("about")
-                                if (labout is not None):
-                                    llabel = labout.find("label")
-                                    if (llabel is not None):
-                                        if (llabel.text != ""):
-                                            opt_val[0] = llabel.text
-                                            if opt_val[1] == '':
-                                                opt_val[1] = llabel.text                                            
-                                opt_list.append((opt_val[0], opt_val[1]))
-                            param['options'] = opt_list
+                        ids.append(id)
 
-                            params [label.text] = param
-        return params;
+        return self.extractParametersById(ids, xml, forcelabels);
         
-    def extractParametersById(self, parameters, xml):
+    def extractParametersById(self, parameters, xml, forcelabels = True):
         inputs = xml.find('input')
         params = {}
         for elem in inputs.iter():
@@ -1351,62 +1308,72 @@ class Rappturetool (Nanohubtool):
                 id = elem.attrib['id']
             if id not in params:
                 about = elem.find("about")
+                description = ""
+                labelt = ""
                 if (about is not None):
                     description = elem.find('description')
                     if description is not None:
                         description = description.text        
                     label = about.find("label")
                     if (label is not None):
-                        if (id in parameters):
-                            if elem.tag not in Rappturetool.discardtags:
-                                param = {"type": elem.tag, "description" : description}
-                                param['units'] = elem.find('units')
-                                param['id'] = id
-                                param['label'] = label.text                        
-                                if param['units'] is not None:
-                                    param['units'] = param['units'].text
-                                param['units'] = elem.find('units')
-                                if param['units'] is not None:
-                                    param['units'] = param['units'].text
-                                param['default'] = elem.find('default')
-                                if param['default'] is not None:
-                                    param['default'] = param['default'].text
-                                param['min'] = elem.find('min')
-                                if param['min'] is not None:
-                                    param['min'] = param['min'].text
-                                param['max'] = elem.find('max')
-                                if param['max'] is not None:
-                                    param['max'] = param['max'].text
-                                param['current'] = elem.find('current')
-                                if param['current'] is not None:
-                                    param['current'] = param['current'].text
-                                options = elem.findall('option')
-                                opt_list = []
-                                for option in options:
-                                    lvalue = option.find("value")
-                                    opt_val = ['', '']                                    
-                                    if (lvalue is not None):
-                                        if (lvalue.text != ""):
-                                            opt_val[0] = lvalue.text
-                                            opt_val[1] = lvalue.text
-                                    labout = option.find("about")
-                                    if (labout is not None):
-                                        llabel = labout.find("label")
-                                        if (llabel is not None):
-                                            if (llabel.text != ""):
-                                                opt_val[0] = llabel.text
-                                                if opt_val[1] == '':
-                                                    opt_val[1] = llabel.text
-                                    opt_list.append((opt_val[0], opt_val[1]))
-                                param['options'] = opt_list
+                        labelt = label.text 
+                if (id in parameters):
+                    if elem.tag not in Rappturetool.discardtags:
+                        param = {"type": elem.tag, "description" : description}
+                        param['units'] = elem.find('units')
+                        param['id'] = id
+                        param['label'] = labelt                        
+                        if param['units'] is not None:
+                            param['units'] = param['units'].text
+                        param['units'] = elem.find('units')
+                        if param['units'] is not None:
+                            param['units'] = param['units'].text
+                        param['default'] = elem.find('default')
+                        if param['default'] is not None:
+                            param['default'] = param['default'].text
+                        param['min'] = elem.find('min')
+                        if param['min'] is not None:
+                            param['min'] = param['min'].text
+                        param['max'] = elem.find('max')
+                        if param['max'] is not None:
+                            param['max'] = param['max'].text
+                        param['current'] = elem.find('current')
+                        if param['current'] is not None:
+                            param['current'] = param['current'].text
+                        options = elem.findall('option')
+                        opt_list = []
+                        for option in options:
+                            lvalue = option.find("value")
+                            opt_val = ['', '']                                    
+                            if (lvalue is not None):
+                                if (lvalue.text != ""):
+                                    opt_val[0] = lvalue.text
+                                    opt_val[1] = lvalue.text
+                            labout = option.find("about")
+                            if (labout is not None):
+                                llabel = labout.find("label")
+                                if (llabel is not None):
+                                    if (llabel.text != ""):
+                                        opt_val[0] = llabel.text
+                                        if opt_val[1] == '':
+                                            opt_val[1] = llabel.text
+                            opt_list.append((opt_val[0], opt_val[1]))
+                        param['options'] = opt_list
 
-                                if param['type'] == "periodicelement" :
-                                    param['type'] = 'choice'
-                                    param['options'] = Rappturetool.periodicelement
-                                
-                                if len(param['options']) > 0:
-                                    if param['default'] not in [p[1] for p in param['options']]:
-                                        param['default'] = param['options'][0][1]
+                        if param['type'] == "periodicelement" :
+                            param['type'] = 'choice'
+                            param['options'] = Rappturetool.periodicelement
+                        if len(param['options']) > 0:
+                            if param['default'] not in [p[1] for p in param['options']]:
+                                param['default'] = param['options'][0][1]
+                        if param['type'] == "string" :
+                            if param['default'] is not None:
+                                if '\n' in param['default'].strip():
+                                    param['type'] = "text"
+                        if forcelabels is False:
+                            params [id] = param
+                        else:
+                            if about is not None and label is not None :
                                 params [id] = param
         return params;        
         

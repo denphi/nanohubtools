@@ -36,7 +36,6 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 
 ```
 
-
 ## Available Nanohub Tools
 
 ### CrystalViewerMaterial, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
@@ -58,11 +57,13 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
     nt.CrystalViewerConstructor(auth_data, modal=False)
 ```
 
+
 ### SimpleQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python
     nt.SimpleQuantumDot(auth_data, modal=False)
 ```
 ![SimpleQuantumDot](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/SimpleQuantumDot.gif)
+
 
 ### StackedQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python
@@ -83,4 +84,10 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 ```
 ![Driftdiffusionlab](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/Driftdiffusionlab.gif)
 
+
+### DFTExplorer, supported by [DFT calculations with Quantum ESPRESSO] (https://nanohub.org/resources/dftqe)
+```python
+    nt.DFTExplorer(auth_data, modal=False)
+```
+![DFTExplorer](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/DFTExplorer.gif)
 
