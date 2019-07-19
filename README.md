@@ -57,6 +57,11 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
     nt.CrystalViewerConstructor(auth_data, modal=False)
 ```
 
+### CrystalViewerSimplified, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
+```python
+    nt.CrystalViewerConstructor(auth_data, modal=False)
+```
+
 
 ### SimpleQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python

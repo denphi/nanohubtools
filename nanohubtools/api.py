@@ -36,7 +36,7 @@ except ImportError:
 
 import sys, json, time
 import requests
-import json
+import json, os
 
 url = r'https://nanohub.org/api'
 sleep_time = 1.5
@@ -61,6 +61,19 @@ def validate_request (auth_json):
 
 
 def authenticate(auth_data):
+    if (auth_data == False):
+        auth_data = {
+            'grant_type' : 'tool',
+        }
+        try:
+            with open(os.environ["PWD"]+"/resources") as file:
+                lines = [line.split(" ", 1) for line in file.readlines()]
+                properties = {line[0].strip(): line[1].strip() for line in lines if len(line)==2}
+                auth_data["sessiontoken"] = properties["session_token"]
+                auth_data["sessionnum"] = properties["sessionid"]                
+        except:
+            pass;
+            
     auth_json = do_post(url, 'developer/oauth/token', auth_data, hdrs={})
     validate_request(auth_json)
     if 'access_token' in auth_json:

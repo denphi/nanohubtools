@@ -59,7 +59,7 @@ class Rappturetool (Nanohubtool):
     z = z.flatten() * 4 * resize
     discardtags = ["phase", "group", "option"]
     jcpk = {
-        'H' : 'rgb([255,255,255)',
+        'H' : 'rgb(255,255,255)',
         'He' : 'rgb(217,255,255)',
         'Li' : 'rgb(204,128,255)',
         'Be' : 'rgb(194,255,0)',
@@ -977,7 +977,7 @@ class Rappturetool (Nanohubtool):
         if out == None:
             out = Floatview(title=label, mode = 'split-bottom')
         out.clear_output()     
-        layout = { 'height' : 600 }
+        layout = { 'height' : 600, 'scene':{'aspectmode':'data'} }
         traces = []
         molecules = draw.findall('molecule')
         for molecule in molecules:
