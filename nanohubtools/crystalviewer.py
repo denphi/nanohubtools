@@ -519,6 +519,21 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
             'num_of_unit_cell',
             'Number_of_sheet',
         ]
+        
+        self.hashtable = {
+        #    "cf1685e7cd459224f1d203d3761022afbf176f70" : "1502990",
+        #    "8831a61c006993ebeacfe7316d24d7126e080ec7" : "1503012",
+        #    "52bd08a2f5e88416bb7fda807751ae69ca290b4f" : "1503014",
+        #    "7f8f9661b0abde0102ac67a9dad43918540f66e5" : "1503015",
+        #    "4a6b04a5d0a03177c7159eb6c0fd0257abc0cc0f" : "1503016",
+        #    "136065ff2b5820abedf22cf7f7a9683d3366663d" : "1503017",
+        #    "5b7c10fb7749e1f2aa17ac747b63d625ac7c6804" : "1503018",
+        #    "33f0dc16b5f9aa536ec4d38d5eced2fe71da7546" : "1503019",
+        #    "860ee8337393529abce6734d618f6d183617b072" : "1503020",
+        #    "820d1103def6b49e4acb7cc3c96e8822cece0869" : "1503811",
+        #    "e48ff7a6c702f3c57d2b4034bd7a72ba0dd6352a" : "1503026", #????
+        }
+        
         self.current_view = "textbook";
         self.hashitem = None;
         self.crystal_component_output = Output(layout=Layout(width="100%", padding="0px"))
@@ -1248,26 +1263,12 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
 
     def getCache(self):
         parameters = self.getCurrentParameters()
-        hashtable = {
-            "cf1685e7cd459224f1d203d3761022afbf176f70" : "1502990",
-            "8831a61c006993ebeacfe7316d24d7126e080ec7" : "1503012",
-            "52bd08a2f5e88416bb7fda807751ae69ca290b4f" : "1503014",
-            "7f8f9661b0abde0102ac67a9dad43918540f66e5" : "1503015",
-            "4a6b04a5d0a03177c7159eb6c0fd0257abc0cc0f" : "1503016",
-            "136065ff2b5820abedf22cf7f7a9683d3366663d" : "1503017",
-            "5b7c10fb7749e1f2aa17ac747b63d625ac7c6804" : "1503018",
-            "33f0dc16b5f9aa536ec4d38d5eced2fe71da7546" : "1503019",
-            "860ee8337393529abce6734d618f6d183617b072" : "1503020",
-            "820d1103def6b49e4acb7cc3c96e8822cece0869" : "1503811",
-            "e48ff7a6c702f3c57d2b4034bd7a72ba0dd6352a" : "1503026", #????
-        }
-
         hashstr =  json.dumps(parameters, sort_keys=True).encode()
         
         hashitem = hashlib.sha1(hashstr).hexdigest()
         if self.hashitem != hashitem:   
-            if hashitem in hashtable:
-                session_id = hashtable[hashitem]
+            if hashitem in self.hashtable:
+                session_id = self.hashtable[hashitem]
                 status = self.session.checkStatus(session_id) 
             else:
                 with self.content_component_output:
@@ -1286,6 +1287,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                             print ("Loading", session_id)
                             time.sleep(5);
                             status = self.session.checkStatus(session_id) 
+                self.hashtable[hashitem] = session_id
 
             xml = self.session.getResults(session_id, status['run_file'])            
             xml = ET.fromstring(xml)
@@ -1513,27 +1515,26 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                         atm1 = atoms[at2][3]
                     atm2 = atoms[at2][3]
                     if atm1 != atm2:
-                        for i in range(sample):
-                            id = None
-                            if i <= sample/2:
-                                id = atm2
-                            else:
-                                id = atm1
-                            xt[id].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
-                            yt[id].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
-                            zt[id].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
+                        for i in range(0,int(sample/2)+2):
+                            xt[atm2].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
+                            yt[atm2].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
+                            zt[atm2].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
                         xt[atm2].append([])
                         zt[atm2].append([])
                         yt[atm2].append([])
+                        
+                        for i in range(int(sample/2)+1, sample):
+                            xt[atm1].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
+                            yt[atm1].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
+                            zt[atm1].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
                         xt[atm1].append([])
                         zt[atm1].append([])
                         yt[atm1].append([])
                     else:
                         for i in range(sample):
-                            id = atm1
-                            xt[id].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
-                            yt[id].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
-                            zt[id].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
+                            xt[atm1].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
+                            yt[atm1].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
+                            zt[atm1].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
                         xt[atm1].append([])
                         zt[atm1].append([])
                         yt[atm1].append([])
