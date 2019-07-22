@@ -24,6 +24,6 @@
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
 
-version_info = (0, 1, 18)
+version_info = (0, 1, 19)
 __version__ = ".".join(map(str, version_info))
 

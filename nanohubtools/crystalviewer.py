@@ -401,9 +401,9 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         'Ne' : 'rgb(255,0,0)',
         'Na' : 'rgb(218,220,217)',
         'Mg' : 'rgb(195,195,185)',
-        'Al' : 'rgb(165,171,176)',
-        'Si' : 'rgb(130,126,127)',
-        'P' : 'rgb(198,177,86)',
+        'Al' : 'rgb(192,168,167)',
+        'Si' : 'rgb(129,154,154)',
+        'P' : 'rgb(255,129,0)',
         'S' : 'rgb(248,239,146)',
         'Cl' : 'rgb(213,221,182)',
         'Ar' : 'rgb(221,112,244)',
@@ -419,9 +419,9 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         'Ni' : 'rgb(181,165,150)',
         'Cu' : 'rgb(196,78,46)',
         'Zn' : 'rgb(255,0,0)',
-        'Ga' : 'rgb(168,177,186)',
-        'Ge' : 'rgb(175,176,168)',
-        'As' : 'rgb(209,219,221)',
+        'Ga' : 'rgb(195,144,144)',
+        'Ge' : 'rgb(102,144,144)',
+        'As' : 'rgb(190,129,228)',
         'Se' : 'rgb(191,71,75)',
         'Br' : 'rgb(154,32,24)',
         'Kr' : 'rgb(164,162,175)',
@@ -439,7 +439,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         'Cd' : 'rgb(106,106,104)',
         'In' : 'rgb(127,109,87)',
         'Sn' : 'rgb(126,120,94)',
-        'Sb' : 'rgb(127,136,143)',
+        'Sb' : 'rgb(159,99,182)',
         'Te' : 'rgb(150,155,158)',
         'I' : 'rgb(95,98,105)',
         'Xe' : 'rgb(0,0,255)',
@@ -521,18 +521,31 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         ]
         
         self.hashtable = {
-        #    "cf1685e7cd459224f1d203d3761022afbf176f70" : "1502990",
-        #    "8831a61c006993ebeacfe7316d24d7126e080ec7" : "1503012",
-        #    "52bd08a2f5e88416bb7fda807751ae69ca290b4f" : "1503014",
-        #    "7f8f9661b0abde0102ac67a9dad43918540f66e5" : "1503015",
-        #    "4a6b04a5d0a03177c7159eb6c0fd0257abc0cc0f" : "1503016",
-        #    "136065ff2b5820abedf22cf7f7a9683d3366663d" : "1503017",
-        #    "5b7c10fb7749e1f2aa17ac747b63d625ac7c6804" : "1503018",
-        #    "33f0dc16b5f9aa536ec4d38d5eced2fe71da7546" : "1503019",
-        #    "860ee8337393529abce6734d618f6d183617b072" : "1503020",
-        #    "820d1103def6b49e4acb7cc3c96e8822cece0869" : "1503811",
-        #    "e48ff7a6c702f3c57d2b4034bd7a72ba0dd6352a" : "1503026", #????
         }
+        
+        self.samples = 16
+        self.resize = .15
+        self.phi = np.linspace(0, 2*np.pi, self.samples)
+        self.theta = np.linspace(-np.pi/2, np.pi/2, self.samples)
+        self.thetat = np.linspace(0,2*np.pi,self.samples)
+        self.phit = np.linspace(0,np.pi,self.samples)
+        self.xt = np.outer(np.cos(self.thetat),np.sin(self.phit)) * 4 * self.resize
+        self.yt = np.outer(np.sin(self.thetat),np.sin(self.phit)) * 4 * self.resize
+        self.zt = np.outer(np.ones(self.samples),np.cos(self.phit)) * 4 * self.resize
+        self.cosphi = np.cos(self.phi) * self.resize
+        self.sinphi = np.sin(self.phi) * self.resize
+        self.phi, self.theta=np.meshgrid(self.phi, self.theta)
+        self.x = np.cos(self.theta) * np.sin(self.phi)
+        self.y = np.cos(self.theta) * np.cos(self.phi)
+        self.z = np.sin(self.theta)
+        self.x = self.x.flatten() * 4 * self.resize
+        self.y = self.y.flatten() * 4 * self.resize
+        self.z = self.z.flatten() * 4 * self.resize
+        
+        self.fig = FigureWidget({
+            'data': [],
+            'layout': { 'height' : 600, 'scene':{'aspectmode':'data'}, 'margin' : {'l':0,'r':0,'t':0,'b':0} }
+        })  
         
         self.current_view = "textbook";
         self.hashitem = None;
@@ -552,6 +565,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         kwargs.setdefault('title', 'CrystalViewer - Materials')
         CrystalViewerTool.__init__(self, credentials, parameters, **kwargs)
         self.reset_options = False
+        
 
     def showMaterial (self, id):
         for i in range(1,13):
@@ -815,10 +829,14 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                         selectedMaterial:this.state.crystals[crystal].default,
                         showMaterials: true
                     })
-                    CrystalViewerSimplified_''' + str(self.ref) + '''['exposedSelectMaterial'](this.state.crystals[crystal].value, this.state.crystals[crystal].default)
+                    if (crystal == "Carbon meshes")
+                        CrystalViewerSimplified_''' + str(self.ref) + '''['exposedSelectMaterial'](this.state.crystals[crystal].value, 1)
+                    else
+                        CrystalViewerSimplified_''' + str(self.ref) + '''['exposedSelectMaterial'](this.state.crystals[crystal].value, this.state.crystals[crystal].default)
                 }
 
                 selectMaterial(material){
+                    material = material + ""
                     this.setState({
                         selectedMaterial:material,
                     })
@@ -862,11 +880,19 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                                 flexDirection: "row",
                                 justifyContent: "center",
                             }
-                            if (material != this.state.selectedMaterial){
-                                mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentMaterial", style:style, onClick:function(e){self.selectMaterial(material)}, title:material}, material))
+                            if (this.state.selectedCrystal == 'Carbon meshes'){
+                                if ((index+1) != this.state.selectedMaterial){
+                                    mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentMaterial", style:style, onClick:function(e){self.selectMaterial(parseInt(index)+1)}, title:material}, material))                                
+                                } else {
+                                    mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentMaterialSelected", style:style, title:material}, material))
+                                }                
                             } else {
-                                mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentMaterialSelected", style:style, title:material}, material))
-                            }                
+                                if (material != this.state.selectedMaterial){
+                                    mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentMaterial", style:style, onClick:function(e){self.selectMaterial(material)}, title:material}, material))                                
+                                } else {
+                                    mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentMaterialSelected", style:style, title:material}, material))
+                                }                
+                            }
                         }            
                     }
                     var crystals = React.createElement("div", {key:Util.create_UUID(), className:"ComponentCrystals"}, children)
@@ -999,20 +1025,20 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                                         "icon": "parameters/miller100.png",
                                         "alt": "100",
                                         "label" : "Miller planes (100)",
-                                        "action" : function(){ self.todo() },
+                                        "action" : function(){ self.displayPlane1B() },
                                     },                        
                                     "010":{
                                         "icon": "parameters/miller010.png",
                                         "alt": "010",
                                         "label" : "Miller planes (010)",
-                                        "action" : function(){ self.todo() },
+                                        "action" : function(){ self.displayPlane2B() },
                                     },                        
 
                                     "001":{
                                         "icon": "parameters/miller001.png",
                                         "alt": "001",
                                         "label" : "Miller planes (001)",
-                                        "action" : function(){ self.todo() },
+                                        "action" : function(){ self.displayPlane3B() },
                                     },  
                                     //"111":{
                                     //   "icon": "parameters/miller111.png",
@@ -1024,7 +1050,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                                 "icon": "parameters/miller.png",
                                 "label" : "Miller planes",
                                 "alt": "MP",
-                                "action" : function(){ self.todo() },
+                                "action" : function(){ },
                             },
                         }, 
                         selectedParameter:"textbook",
@@ -1051,20 +1077,44 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                 displayLattice(){
                     CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayLattice"]();
                 }
+
+                displayPlane1A(){
+                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayPlane1A"]();
+                }
+                
+                displayPlane1B(){
+                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayPlane1B"]();
+                }
+                
+                displayPlane2A(){
+                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayPlane2A"]();
+                }
+                
+                displayPlane2B(){
+                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayPlane2B"]();
+                }
+                
+                displayPlane3A(){
+                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayPlane3A"]();
+                }
+                
+                displayPlane3B(){
+                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayPlane3B"]();
+                }
                 
                 selectParameter(parameter){
                     this.setState({
                         selectedParameter:parameter, 
-                        selectedOptiont:undefined,
+                        selectedOption:undefined,
                     })
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedTest"](parameter, "TODO")
+                    //CrystalViewerSimplified_''' + str(self.ref) + '''["exposedTest"](parameter, "TODO")
                 }
 
                 selectOption(option){
                     this.setState({
-                        selectedOptiont:option,
+                        selectedOption:option,
                     })
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedTest"](option, "TODO")
+                    //CrystalViewerSimplified_''' + str(self.ref) + '''["exposedTest"](option, "TODO")
                 }
 
                 callOption(option){
@@ -1192,7 +1242,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                     else:
                         interface_js += ", \\'' + String(" + parameter + ") + '\\'"
                 interface_js += ")';\n";
-                interface_js += "    console.log('Egetxecuting Command: ' + command);\n"
+                interface_js += "    console.log('Executing Command: ' + command);\n"
                 interface_js += "    var kernel = IPython.notebook.kernel;\n"
                 interface_js += "    kernel.execute(command);\n"
                 interface_js += "}\n";
@@ -1208,6 +1258,18 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
             self.exposedDisplayUnitCell()
         elif (self.current_view == "lattice"):
             self.exposedDisplayLattice()
+        elif (self.current_view == "plane1A"):
+            self.exposedDisplayPlane1A()
+        elif (self.current_view == "plane1B"):
+            self.exposedDisplayPlane1B()
+        elif (self.current_view == "plane2A"):
+            self.exposedDisplayPlane2A()
+        elif (self.current_view == "plane2B"):
+            self.exposedDisplayPlane2B()
+        elif (self.current_view == "plane3A"):
+            self.exposedDisplayPlane3A()
+        elif (self.current_view == "plane3B"):
+            self.exposedDisplayPlane3B()
 
 
     def displayWindow(self):   
@@ -1239,6 +1301,20 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                                
         self.options['Crystal_structure'].dd.observe(lambda b, this=self : this.showMaterial(int(b['new'])), 'value')
 
+        self.options['Draw_miller_plane'].value = "yes"
+        self.options['Draw_plane_1'].value = "yes"
+        self.options['Miller_index_1_1'].value = 1
+        self.options['Miller_index_1_2'].value = 0
+        self.options['Miller_index_1_3'].value = 0
+        self.options['Draw_plane_2'].value = "yes"
+        self.options['Miller_index_2_1'].value = 0
+        self.options['Miller_index_2_2'].value = 1
+        self.options['Miller_index_2_3'].value = 0
+        self.options['Draw_plane_3'].value = "yes"
+        self.options['Miller_index_3_1'].value = 0
+        self.options['Miller_index_3_2'].value = 0
+        self.options['Miller_index_3_3'].value = 1
+        
         container_structure.children = children_structure
         container_miller = self.displayMillerOptions()
         self.showMaterial(1)
@@ -1266,47 +1342,89 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         hashstr =  json.dumps(parameters, sort_keys=True).encode()
         
         hashitem = hashlib.sha1(hashstr).hexdigest()
-        if self.hashitem != hashitem:   
+        if self.hashitem != hashitem:
+            xml = None
             if hashitem in self.hashtable:
-                session_id = self.hashtable[hashitem]
-                status = self.session.checkStatus(session_id) 
-            else:
                 with self.content_component_output:
                     clear_output()  
-                    print("LOADING CACHE ....")
-                driver_json = self.generateDriver( {'parameters':parameters } )
-                session_id = self.session.getSession(driver_json)
-                with self.content_component_output:            
-                    print ("new", hashitem, session_id)
-                    status = self.session.checkStatus(session_id) 
-                    loading = True
-                    while loading == True:
-                        if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
-                            loading = False
-                        else:    
-                            print ("Loading", session_id)
-                            time.sleep(5);
-                            status = self.session.checkStatus(session_id) 
-                self.hashtable[hashitem] = session_id
-
-            xml = self.session.getResults(session_id, status['run_file'])            
+                    print("LOADING CACHE ...." + hashitem)
+                with open(self.hashtable[hashitem],'rt' ) as f:
+                    xml = f.read()
+            else:
+                if os.path.isfile(hashitem + ".xml"):
+                    with self.content_component_output:
+                        clear_output()  
+                        print("REBUILD CACHE ...." + hashitem)
+                    driver_json = self.generateDriver( {'parameters':parameters } )
+                    session_id = self.session.getSession(driver_json)
+                    with open(hashitem + ".xml",'rt' ) as f:
+                        xml = f.read()
+                    self.hashtable[hashitem] = hashitem + ".xml"
+                        
+                else:                
+                    with self.content_component_output:
+                        clear_output()  
+                        print("GENERATING CACHE ...." + hashitem)
+                    driver_json = self.generateDriver( {'parameters':parameters } )
+                    session_id = self.session.getSession(driver_json)
+                    with self.content_component_output:            
+                        print ("new", hashitem, session_id)
+                        status = self.session.checkStatus(session_id) 
+                        loading = True
+                        while loading == True:
+                            if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
+                                loading = False
+                            else:    
+                                print ("Running ", session_id)
+                                time.sleep(5);
+                                status = self.session.checkStatus(session_id) 
+                    xml = self.session.getResults(session_id, status['run_file'])
+                    self.hashtable[hashitem] = hashitem + ".xml"
+                    with open(self.hashtable[hashitem],'wt' ) as f:
+                        f.write(xml)
+                    
             xml = ET.fromstring(xml)
             results = xml.find('output')
-            drawings = results
-            self.textbook = None;#drawings[0]
-            self.lattice = None;#drawings[1]
-            self.unitcell = None;#drawings[2] 
+            drawings = results.findall('drawing')
+            self.textbook = None;
+            self.lattice = None;
+            self.unitcell = None;
+            self.plane1A = None;
+            self.plane1B = None;
+            self.plane2A = None;
+            self.plane2B = None;
+            self.plane3A = None;
+            self.plane3B = None;
             for drawing in drawings:
-                text = self.getText(drawing, ['about', 'label'])
-                if text == "Basis":
+                if 'id' in drawing.attrib:
+                    text = drawing.attrib['id']#self.getText(drawing, ['about', 'label'])
+                else:
+                    text = ""
+                if text == "structure1":  #"Basis":
                     self.unitcell = drawing
-                elif text == "Lattice grid":
+                elif text == "structure2":  #"Lattice grid":
                     self.lattice = drawing
-                elif text == "Text book unit cell":
+                elif text == "structure0":  #:"Text book unit cell":
                     self.textbook = drawing
-            with self.content_component_output:
-                clear_output()  
-            self.hashitem = hashitem
+                elif text == "plane1_side_A": #:"Crystal on one side of plane 1"
+                    self.plane1A = drawing
+                elif text == "plane1_side_B": #:"Crystal on the other side of plane 1"
+                    self.plane1B = drawing
+                elif text == "plane2_side_A": #:"Crystal on one side of plane 2"
+                    self.plane2A = drawing
+                elif text == "plane2_side_B": #:"Crystal on the other side of plane 2"
+                    self.plane2B = drawing
+                elif text == "plane3_side_A": #:"Crystal on one side of plane 3"
+                    self.plane3A = drawing
+                elif text == "plane3_side_B": #:"Crystal on the other side of plane 3"
+                    self.plane3B = drawing
+            if self.textbook == None:
+                self.textbook = self.unitcell
+            if self.lattice == None:
+                self.lattice = self.unitcell
+        with self.content_component_output:
+            clear_output()  
+        self.hashitem = hashitem
             
     def exposedDisplayOptions(self):
         self.getCache()
@@ -1318,26 +1436,44 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
     def exposedDisplayTextBook(self):
         self.getCache()        
         self.current_view = "textbook"
-        with self.content_component_output:
-            clear_output();
         if self.textbook != None:
             self.plotDrawing(self.textbook,self.content_component_output)
     
     def exposedDisplayUnitCell(self):
         self.getCache()        
         self.current_view = "unitcell"
-        with self.content_component_output:
-            clear_output();
         if self.unitcell != None:
             self.plotDrawing(self.unitcell,self.content_component_output)
 
     def exposedDisplayLattice(self):
         self.getCache()        
         self.current_view = "lattice"
-        with self.content_component_output:
-            clear_output();
         if self.lattice != None:
             self.plotDrawing(self.lattice,self.content_component_output)
+
+    def exposedDisplayPlane1A(self):
+        self.displayPlane("plane1A", self.plane1A)
+        
+    def exposedDisplayPlane1B(self):
+        self.displayPlane("plane1B", self.plane1B)
+        
+    def exposedDisplayPlane2A(self):
+        self.displayPlane("plane2A", self.plane2A)
+        
+    def exposedDisplayPlane2B(self):
+        self.displayPlane("plane2B", self.plane2B)
+        
+    def exposedDisplayPlane3A(self):
+        self.displayPlane("plane3A", self.plane3A)
+        
+    def exposedDisplayPlane3B(self):
+        self.displayPlane("plane3B", self.plane3B)
+        
+    def displayPlane(self, plane, content):
+        self.getCache()
+        self.current_view = plane
+        if content != None:
+            self.plotDrawing(content,self.content_component_output)
 
     def exposedSelectCrystal(self, crystal):
         if (self.options["Crystal_structure"].value != crystal):
@@ -1356,8 +1492,8 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         label = self.getText(draw, ["index", "label"])
         if out == None:
             out = Floatview(title=label, mode = 'split-bottom')
-        out.clear_output()     
-        layout = { 'height' : 600, 'scene':{'aspectmode':'data'}, 'margin' : {'l':0,'r':0,'t':0,'b':0} }
+        self.fig.data = []
+        #out.clear_output()     
         traces = []
         molecules = draw.findall('molecule')
         for molecule in molecules:
@@ -1451,9 +1587,9 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
 
             for id, atom in atoms.items():
                 if atom[5] == "enabled" and (atom[3] not in ["He","Yb","Xe","Zn"]):
-                    xv = (Rappturetool.xt + atom[0]).tolist()
-                    yv = (Rappturetool.yt + atom[1]).tolist()
-                    zv = (Rappturetool.zt + atom[2]).tolist()
+                    xv = (self.xt + atom[0]).tolist()
+                    yv = (self.yt + atom[1]).tolist()
+                    zv = (self.zt + atom[2]).tolist()
                     xv.extend([[point for point in xv[0]],[point for point in xv[1]],[]])
                     yv.extend([[point for point in yv[0]],[point for point in yv[1]],[]])
                     zv.extend([[point for point in zv[0]],[point for point in zv[1]],[]]) 
@@ -1470,19 +1606,23 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                 
                 colorscalea = [[0,CrystalViewerSimplified.jcpk[atom]], [1,CrystalViewerSimplified.jcpk[atom]]]
 
-                trace = { 
-                    'type':'surface',
-                    'x': xt[atom], 
-                    'y': yt[atom], 
-                    'z': zt[atom], 
-                    'text' : atom,
-                    'showscale' : False,
-                    'hoverinfo' : "text",
-                    'colorscale' : colorscalea,
-                    'connectgaps' : False
-
-                }
-                traces.append(trace)
+                self.fig.add_surface(
+                    x = xt[atom], 
+                    y = yt[atom], 
+                    z = zt[atom], 
+                    hovertext = atom,
+                    showscale = False,
+                    hoverinfo = "text",
+                    colorscale = colorscalea,
+                    connectgaps = False,
+                    lighting = { 
+                        'specular' : 1 ,
+                        'ambient' : 0.4,
+                        'diffuse' :0.5, 
+                        'roughness' : 0.9, 
+                        'fresnel' : 2.0,
+                    }
+                )
                    
             
             xt = {}
@@ -1501,40 +1641,40 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                     at2 = atom2
                     u = np.array([atoms[at2][i]-atoms[at1][i] for i in range(3)])        
                     u /= np.linalg.norm(u)
-                    v1 = np.random.randn(3)  # take a random vector
-                    v1 -= v1.dot(u) * u       # make it orthogonal to k
+                    v1 = np.random.randn(3)  
+                    v1 -= v1.dot(u) * u       
                     v1 /= np.linalg.norm(v1)
                     v2 = np.cross(v1, u)
                     v2 /= np.linalg.norm(v2)
-                    sample = int(Rappturetool.samples/2)
-                    xd = np.linspace(atoms[at2][0], atoms[at1][0], sample)
-                    yd = np.linspace(atoms[at2][1], atoms[at1][1], sample)
-                    zd = np.linspace(atoms[at2][2], atoms[at1][2], sample)
+                    sample = int(self.samples/2)
+                    xd = np.linspace(atoms[at2][0], atoms[at1][0], sample, endpoint=True)
+                    yd = np.linspace(atoms[at2][1], atoms[at1][1], sample, endpoint=True)
+                    zd = np.linspace(atoms[at2][2], atoms[at1][2], sample, endpoint=True)
                     atm1 = atoms[at1][3]
                     if atm1 == "He":
                         atm1 = atoms[at2][3]
                     atm2 = atoms[at2][3]
                     if atm1 != atm2:
                         for i in range(0,int(sample/2)+2):
-                            xt[atm2].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
-                            yt[atm2].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
-                            zt[atm2].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
+                            xt[atm2].append((self.cosphi*v1[0] + self.sinphi*v2[0] + xd[i]).tolist())
+                            yt[atm2].append((self.cosphi*v1[1] + self.sinphi*v2[1] + yd[i]).tolist())
+                            zt[atm2].append((self.cosphi*v1[2] + self.sinphi*v2[2] + zd[i]).tolist())
                         xt[atm2].append([])
                         zt[atm2].append([])
                         yt[atm2].append([])
                         
-                        for i in range(int(sample/2)+1, sample):
-                            xt[atm1].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
-                            yt[atm1].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
-                            zt[atm1].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
+                        for i in range(int(sample/2)-1, sample):
+                            xt[atm1].append((self.cosphi*v1[0] + self.sinphi*v2[0] + xd[i]).tolist())
+                            yt[atm1].append((self.cosphi*v1[1] + self.sinphi*v2[1] + yd[i]).tolist())
+                            zt[atm1].append((self.cosphi*v1[2] + self.sinphi*v2[2] + zd[i]).tolist())
                         xt[atm1].append([])
                         zt[atm1].append([])
                         yt[atm1].append([])
                     else:
                         for i in range(sample):
-                            xt[atm1].append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
-                            yt[atm1].append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())
-                            zt[atm1].append((Rappturetool.cosphi*v1[2] + Rappturetool.sinphi*v2[2] + zd[i]).tolist())
+                            xt[atm1].append((self.cosphi*v1[0] + self.sinphi*v2[0] + xd[i]).tolist())
+                            yt[atm1].append((self.cosphi*v1[1] + self.sinphi*v2[1] + yd[i]).tolist())
+                            zt[atm1].append((self.cosphi*v1[2] + self.sinphi*v2[2] + zd[i]).tolist())
                         xt[atm1].append([])
                         zt[atm1].append([])
                         yt[atm1].append([])
@@ -1543,20 +1683,17 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                 opacity = 1.0
                 if c == "He":
                     opacity = 0.2
-                trace = { 
-                    'type':'surface',
-                    'x': xt[c], 
-                    'y': yt[c], 
-                    'z': zt[c], 
-                    'text' : '',    
-                    'showscale' : False,
-                    'hoverinfo' : 'text',
-                    'colorscale' : [[0,CrystalViewerSimplified.jcpk[c]], [1,CrystalViewerSimplified.jcpk[c]]],
-                    'connectgaps' : False,
-                    'opacity' : opacity
-                }
-                
-                traces.append(trace)   
+                self.fig.add_surface(
+                    x = xt[c], 
+                    y = yt[c], 
+                    z = zt[c], 
+                    hovertext = '',    
+                    showscale = False,
+                    hoverinfo = 'text',
+                    colorscale = [[0,CrystalViewerSimplified.jcpk[c]], [1,CrystalViewerSimplified.jcpk[c]]],
+                    connectgaps = False,
+                    opacity = opacity
+                )
                 
             polygons = draw.findall('polygon')
             for polygon in polygons:
@@ -1588,30 +1725,25 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                     yt = [point[1] for point in points]
                     zt = [point[2] for point in points]
 
-                    trace = { 
-                        'type':'mesh3d',
-                        'x': xt, 
-                        'y': yt, 
-                        'z': zt, 
-                        'color' : 'lightgrey',
-                        'text' : '',
-                        'hoverinfo' : 'text'
-                    }
+                    delaunayaxis = None
                     if len(set(xt)) == 1 : 
-                        trace['delaunayaxis'] = 'x'
+                        delaunayaxis = 'x'
                     elif len(set(yt)) == 1 : 
-                        trace['delaunayaxis'] = 'y'
+                        delaunayaxis = 'y'
                     elif len(set(zt)) == 1 : 
-                        trace['delaunayaxis'] = 'z'
+                        delaunayaxis = 'z'
 
-                    traces.append(trace)
+                    self.fig.add_mesh3d(
+                        x = xt, 
+                        y = yt, 
+                        z = zt, 
+                        color = 'lightgrey',
+                        hovertext = '',
+                        hoverinfo = 'text',
+                        delaunayaxis = delaunayaxis
+                    )
 
-            fig = FigureWidget({                
-                'data': traces,
-                'layout': layout
-            })  
-            #self.fig = fig
-
-        with out:            
-            display(fig)
-        return fig        
+        with out:   
+            display(self.fig)
+            
+        return self.fig        
