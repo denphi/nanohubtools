@@ -8,7 +8,7 @@ import xml.etree.ElementTree as ET
 import hashlib, json
 import math, os, base64
 import numpy as np
-
+import pythreejs as pt
 
 class CrystalViewerTool (Rappturetool):
     parameters_miller = [            
@@ -501,6 +501,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
     }
     
     def __init__(self, credentials, **kwargs):
+        self.engine = kwargs.get("engine", "plotly")
         InstanceTracker.__init__(self)                                  
         self.parameters_structure = [
             'Nx',
@@ -1488,7 +1489,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
             self.getCache()
             self.refreshView()
 
-    def plotDrawing(self, draw, out):
+    def plotDrawingPlotly(self, draw, out):
         label = self.getText(draw, ["index", "label"])
         if out == None:
             out = Floatview(title=label, mode = 'split-bottom')
@@ -1497,79 +1498,8 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
         traces = []
         molecules = draw.findall('molecule')
         for molecule in molecules:
-            atoms = {}
-            connections = {}            
-            pdb = molecule.find('pdb')
-            if pdb is not None:
-                pdbt = self.getText(pdb, [])
-                lines = pdbt.split('\n')
-                for line in lines:
-                    if line.startswith("ATOM"):
-                        cols = line.split()
-                        atoms[int(cols[1])] = [float(cols[5]),float(cols[6]),float(cols[7]), cols[2],CrystalViewerSimplified.jcpk[cols[2]], "enabled"]
-                    elif line.startswith("CONECT"):
-                        cols = line.split()
-                        connections[int(cols[1])] = [int(c) for c in cols[2:]]
-            else:
-                vtk = molecule.find('vtk')
-                if vtk is not None:
-                    jcpkkeys = list(CrystalViewerSimplified.jcpk.keys())
-                    vtkt = self.getText(vtk, [])
-                    lines = vtkt.split('\n')
-                    i=0
-                    points = []
-                    vertices = []
-                    while i < len(lines):
-                        line = lines[i]
-                        if line.startswith("POINTS"):
-                            tpoints = int(line.split()[1])
-                            for ii in range(math.ceil(tpoints/3)):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                if len(points) < tpoints:
-                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
+            atoms, connections = self.getMolecule(molecule)        
 
-                        elif line.startswith("VERTICES"):
-                            tvert = int(line.split()[1])
-                            for ii in range(tvert):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                pp = [int(p) for p in pp]                                    
-                                atoms[pp[1]] = [points[ii][0],points[ii][1],points[ii][2], 'Si', 'rgb(240,200,160)', "enabled"]
-                            for j, point in enumerate(points):
-                                if j not in atoms.keys():
-                                    atoms[j] = [point[0],point[1],point[2], '', 'rgb(0,0,0)', "disabled"]
-                        elif line.startswith("LINES"):
-                            tlines = int(line.split()[1])
-                            for ii in range(tlines):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                pp = [int(p) for p in pp]
-                                if pp[1] in connections:
-                                    connections[pp[1]].append(pp[2])
-                                else:
-                                    connections[pp[1]] = [pp[2]]
-                        elif line.startswith("atom_type"):
-                            ttype = int(line.split()[2])
-                            for ii in range(math.ceil(ttype/9)):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                pp = [int(p) for p in pp]
-                                for k in range (9):
-                                    atom_id = (9*ii+k)                                      
-                                    if atom_id in atoms and pp[k] <= len(CrystalViewerSimplified.jcpk):
-                                        atoms[atom_id][3] = jcpkkeys[pp[k]-1] 
-                                        atoms[atom_id][4] = CrystalViewerSimplified.jcpk[atoms[atom_id][3]]
-
-                        i = i+1
             xt = None
             yt = None
             zt = None
@@ -1604,7 +1534,7 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                         
             for atom in list(xt.keys()):
                 
-                colorscalea = [[0,CrystalViewerSimplified.jcpk[atom]], [1,CrystalViewerSimplified.jcpk[atom]]]
+                colorscalea = [[0,self.jcpk[atom]], [1,self.jcpk[atom]]]
 
                 self.fig.add_surface(
                     x = xt[atom], 
@@ -1690,60 +1620,171 @@ class CrystalViewerSimplified (InstanceTracker, CrystalViewerTool):
                     hovertext = '',    
                     showscale = False,
                     hoverinfo = 'text',
-                    colorscale = [[0,CrystalViewerSimplified.jcpk[c]], [1,CrystalViewerSimplified.jcpk[c]]],
+                    colorscale = [[0,self.jcpk[c]], [1,self.jcpk[c]]],
                     connectgaps = False,
                     opacity = opacity
                 )
                 
-            polygons = draw.findall('polygon')
-            for polygon in polygons:
-                points = {}
-                connections = {}            
-                vtk = polygon.find('vtk')
-                if vtk is not None:
-                    vtkt = self.getText(vtk, [])
-                    lines = vtkt.split('\n')
-                    i=0
-                    points = []
-                    while i < len(lines):
-                        line = lines[i]
-                        if line.startswith("POINTS"):
-                            tpoints = int(line.split()[1])
-                            for ii in range(math.ceil(tpoints/3)):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                if len(points) < tpoints:
-                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
-                        i=i+1             
+            polys = self.getPolygons(draw);
 
-                    xt = [point[0] for point in points]
-                    yt = [point[1] for point in points]
-                    zt = [point[2] for point in points]
+            for points in polys:
+                xt = [point[0] for point in points]
+                yt = [point[1] for point in points]
+                zt = [point[2] for point in points]
 
-                    delaunayaxis = None
-                    if len(set(xt)) == 1 : 
-                        delaunayaxis = 'x'
-                    elif len(set(yt)) == 1 : 
-                        delaunayaxis = 'y'
-                    elif len(set(zt)) == 1 : 
-                        delaunayaxis = 'z'
+                delaunayaxis = None
+                if len(set(xt)) == 1 : 
+                    delaunayaxis = 'x'
+                elif len(set(yt)) == 1 : 
+                    delaunayaxis = 'y'
+                elif len(set(zt)) == 1 : 
+                    delaunayaxis = 'z'
 
-                    self.fig.add_mesh3d(
-                        x = xt, 
-                        y = yt, 
-                        z = zt, 
-                        color = 'lightgrey',
-                        hovertext = '',
-                        hoverinfo = 'text',
-                        delaunayaxis = delaunayaxis
-                    )
+                self.fig.add_mesh3d(
+                    x = xt, 
+                    y = yt, 
+                    z = zt, 
+                    color = 'lightgrey',
+                    hovertext = '',
+                    hoverinfo = 'text',
+                    delaunayaxis = delaunayaxis
+                )
 
         with out:   
             display(self.fig)
             
-        return self.fig        
+        return self.fig   
+
+
+        
+    def plotDrawing(self, draw, out):
+        if self.engine == "three":
+            return self.plotDrawingThree(draw, out)
+        else :
+            return self.plotDrawingPlotly(draw, out)
+            
+    def plotDrawingThree(self, draw, out):
+        label = self.getText(draw, ["index", "label"])
+        if out == None:
+            out = Floatview(title=label, mode = 'split-bottom')
+        self.fig.data = []
+        traces = []
+        molecules = draw.findall('molecule')
+        balls = []
+        geometry = pt.SphereGeometry(radius=.5, widthSegments=16, heightSegments=16)
+        for molecule in molecules:    
+            atoms, connections = self.getMolecule(molecule)
+                        
+            xt = None
+            yt = None
+            zt = None
+            st = None
+            color = {}
+            colorset = set()
+            for id, atom in atoms.items():
+                colorset.add(atom[3])
+            colorset = list(colorset)
+        
+
+            for id, atom in atoms.items():
+                if atom[5] == "enabled" and (atom[3] not in ["He","Yb","Xe","Zn"]):
+                    balls.append(pt.Mesh(
+                        geometry = geometry, 
+                        material = pt.MeshLambertMaterial(color=self.jcpk[atom[3]], reflectivity=0.1),
+                        position = [atom[0], atom[1], atom[2]] 
+                    ))
+                    
+               
+            for atom1, connection in connections.items():
+                for atom2 in connection:
+                    at1 = atoms[atom1]
+                    at2 = atoms[atom2]
+                    c1 = at1[3]
+                    c2 = at2[3]
+                    if c1 == "He":
+                        c1 = c2
+                    opacity = 1.0
+                    linewidth = 10
+                    if c1 == c2:
+                        if c1 == "He":
+                            opacity = 0.1
+                            linewidth = 5
+                        balls.append(pt.LineSegments2(
+                            geometry = pt.LineSegmentsGeometry(
+                                positions = [
+                                    [ [at1[0],at1[1],at1[2]], [at2[0],at2[1],at2[2]] ],
+                                ]
+                            ), 
+                            material = pt.LineMaterial(color=self.jcpk[c1], linewidth=linewidth, opacity=opacity, transparent=True),
+                        ))
+                    else:
+                        balls.append(pt.LineSegments2(
+                            geometry = pt.LineSegmentsGeometry(
+                                positions = [
+                                    [ [at1[0],at1[1],at1[2]], [(at2[0]+at1[0])/2,(at2[1]+at1[1])/2,(at2[2]+at1[2])/2] ],
+                                ]
+                            ), 
+                            material = pt.LineMaterial(color=self.jcpk[c1], linewidth=linewidth, opacity=opacity, transparent=True),
+                        ))
+                        balls.append(pt.LineSegments2(
+                            geometry = pt.LineSegmentsGeometry(
+                                positions = [
+                                    [ [(at2[0]+at1[0])/2,(at2[1]+at1[1])/2,(at2[2]+at1[2])/2], [at2[0],at2[1],at2[2]] ],
+                                ]
+                            ), 
+                            material = pt.LineMaterial(color=self.jcpk[c2], linewidth=linewidth, opacity=opacity, transparent=True),
+                        ))
+                   
+
+            polys = self.getPolygons(draw);
+
+            for points in polys:
+            
+                p1 = np.array(points[0])
+                p2 = np.array(points[1])
+                p3 = np.array(points[2])
+
+                v1 = p3 - p1
+                v2 = p2 - p1
+                
+                cp = np.cross(v1, v2)
+                
+                avgx = sum([points[i][0] for i in range(3)])/3
+                avgy = sum([points[i][1] for i in range(3)])/3
+                avgz = sum([points[i][2] for i in range(3)])/3
+                
+                mesh = pt.Mesh(
+                    geometry = pt.PlaneGeometry(
+                        width=20,
+                        height=20,
+                        widthSegments=10,
+                        heightSegments=10,
+                    ), 
+                    material = pt.MeshLambertMaterial(color='#EEEEEE', reflectivity=0.1, side='DoubleSide'),
+                    position = [avgx, avgy, avgz],
+                )
+                
+                mesh.lookAt([cp[0],cp[1],cp[2]])
+                balls.append(mesh)
+   
+                
+        c = pt.PerspectiveCamera(
+            position=[0, 10, 10], 
+            up=[0, 1, 0],
+            children=[pt.DirectionalLight(color='white', position=[3, 5, 1], intensity=0.5)], 
+            aspect = 800/600,
+        )
+        balls.append(c)
+        balls.append(pt.AmbientLight(color='#777777'))
+        with out:   
+            scene = pt.Scene(children=balls)
+            renderer = pt.Renderer(camera=c, 
+                scene=scene, 
+                controls=[pt.OrbitControls(controlling=c)],
+                width = 800,
+                height = 600,
+                antialias=False,
+            )
+            display(renderer)
+            
+        return renderer

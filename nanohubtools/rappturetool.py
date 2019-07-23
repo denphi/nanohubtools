@@ -981,79 +981,8 @@ class Rappturetool (Nanohubtool):
         traces = []
         molecules = draw.findall('molecule')
         for molecule in molecules:
-            atoms = {}
-            connections = {}            
-            pdb = molecule.find('pdb')
-            if pdb is not None:
-                pdbt = self.getText(pdb, [])
-                lines = pdbt.split('\n')
-                for line in lines:
-                    if line.startswith("ATOM"):
-                        cols = line.split()
-                        atoms[int(cols[1])] = [float(cols[5]),float(cols[6]),float(cols[7]), cols[2], Rappturetool.jcpk[cols[2]], "enabled"]
-                    elif line.startswith("CONECT"):
-                        cols = line.split()
-                        connections[int(cols[1])] = [int(c) for c in cols[2:]]
-            else:
-                vtk = molecule.find('vtk')
-                if vtk is not None:
-                    jcpkkeys = list(Rappturetool.jcpk.keys())
-                    vtkt = self.getText(vtk, [])
-                    lines = vtkt.split('\n')
-                    i=0
-                    points = []
-                    vertices = []
-                    while i < len(lines):
-                        line = lines[i]
-                        if line.startswith("POINTS"):
-                            tpoints = int(line.split()[1])
-                            for ii in range(math.ceil(tpoints/3)):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                if len(points) < tpoints:
-                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
+            atoms, connections = self.getMolecule(molecule)
 
-                        elif line.startswith("VERTICES"):
-                            tvert = int(line.split()[1])
-                            for ii in range(tvert):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                pp = [int(p) for p in pp]                                    
-                                atoms[pp[1]] = [points[ii][0],points[ii][1],points[ii][2], 'Si', 'rgb(240,200,160)', "enabled"]
-                            for j, point in enumerate(points):
-                                if j not in atoms.keys():
-                                    atoms[j] = [point[0],point[1],point[2], '', 'rgb(0,0,0)', "disabled"]
-                        elif line.startswith("LINES"):
-                            tlines = int(line.split()[1])
-                            for ii in range(tlines):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                pp = [int(p) for p in pp]
-                                if pp[1] in connections:
-                                    connections[pp[1]].append(pp[2])
-                                else:
-                                    connections[pp[1]] = [pp[2]]
-                        elif line.startswith("atom_type"):
-                            ttype = int(line.split()[2])
-                            for ii in range(math.ceil(ttype/9)):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                pp = [int(p) for p in pp]
-                                for k in range (9):
-                                    atom_id = (9*ii+k)                                      
-                                    if atom_id in atoms and pp[k] <= len(Rappturetool.jcpk):
-                                        atoms[atom_id][3] = jcpkkeys[pp[k]-1] 
-                                        atoms[atom_id][4] = Rappturetool.jcpk[atoms[atom_id][3]]
-
-                        i = i+1
             xt = None
             yt = None
             zt = None
@@ -1154,31 +1083,10 @@ class Rappturetool (Nanohubtool):
                 'text' : '',                                
             }
             traces.append(trace)   
-            polygons = draw.findall('polygon')
-            for polygon in polygons:
-                points = {}
-                connections = {}            
-                vtk = polygon.find('vtk')
-                if vtk is not None:
-                    vtkt = self.getText(vtk, [])
-                    lines = vtkt.split('\n')
-                    i=0
-                    points = []
-                    while i < len(lines):
-                        line = lines[i]
-                        if line.startswith("POINTS"):
-                            tpoints = int(line.split()[1])
-                            for ii in range(math.ceil(tpoints/3)):
-                                i = i+1                                    
-                                line = lines[i]
-                                pp = line.split()
-                                if len(points) < tpoints:
-                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
-                                if len(points) < tpoints:
-                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
-                        i=i+1             
+            
+            polys = self.getPolygons(draw);
+
+            for points in polys:
 
                     xt = [point[0] for point in points]
                     yt = [point[1] for point in points]
@@ -1386,3 +1294,109 @@ class Rappturetool (Nanohubtool):
         if (self.authenticated):
             return load_results(results_json, self.headers)
         return ''
+
+    def getMolecule(self, molecule):    
+        atoms = {}
+        connections = {}            
+        pdb = molecule.find('pdb')
+        if pdb is not None:
+            pdbt = self.getText(pdb, [])
+            lines = pdbt.split('\n')
+            for line in lines:
+                if line.startswith("ATOM"):
+                    cols = line.split()
+                    atoms[int(cols[1])] = [float(cols[5]),float(cols[6]),float(cols[7]), cols[2],Rappturetool.jcpk[cols[2]], "enabled"]
+                elif line.startswith("CONECT"):
+                    cols = line.split()
+                    connections[int(cols[1])] = [int(c) for c in cols[2:]]
+        else:
+            vtk = molecule.find('vtk')
+            if vtk is not None:
+                jcpkkeys = list(Rappturetool.jcpk.keys())
+                vtkt = self.getText(vtk, [])
+                lines = vtkt.split('\n')
+                i=0
+                points = []
+                vertices = []
+                while i < len(lines):
+                    line = lines[i]
+                    if line.startswith("POINTS"):
+                        tpoints = int(line.split()[1])
+                        for ii in range(math.ceil(tpoints/3)):
+                            i = i+1                                    
+                            line = lines[i]
+                            pp = line.split()
+                            if len(points) < tpoints:
+                                points.append([float(pp[0]),float(pp[1]),float(pp[2])])
+                            if len(points) < tpoints:
+                                points.append([float(pp[3]),float(pp[4]),float(pp[5])])
+                            if len(points) < tpoints:
+                                points.append([float(pp[6]),float(pp[7]),float(pp[8])])
+
+                    elif line.startswith("VERTICES"):
+                        tvert = int(line.split()[1])
+                        for ii in range(tvert):
+                            i = i+1                                    
+                            line = lines[i]
+                            pp = line.split()
+                            pp = [int(p) for p in pp]                                    
+                            atoms[pp[1]] = [points[ii][0],points[ii][1],points[ii][2], 'Si', 'rgb(240,200,160)', "enabled"]
+                        for j, point in enumerate(points):
+                            if j not in atoms.keys():
+                                atoms[j] = [point[0],point[1],point[2], '', 'rgb(0,0,0)', "disabled"]
+                    elif line.startswith("LINES"):
+                        tlines = int(line.split()[1])
+                        for ii in range(tlines):
+                            i = i+1                                    
+                            line = lines[i]
+                            pp = line.split()
+                            pp = [int(p) for p in pp]
+                            if pp[1] in connections:
+                                connections[pp[1]].append(pp[2])
+                            else:
+                                connections[pp[1]] = [pp[2]]
+                    elif line.startswith("atom_type"):
+                        ttype = int(line.split()[2])
+                        for ii in range(math.ceil(ttype/9)):
+                            i = i+1                                    
+                            line = lines[i]
+                            pp = line.split()
+                            pp = [int(p) for p in pp]
+                            for k in range (9):
+                                atom_id = (9*ii+k)                                      
+                                if atom_id in atoms and pp[k] <= len(Rappturetool.jcpk):
+                                    atoms[atom_id][3] = jcpkkeys[pp[k]-1] 
+                                    atoms[atom_id][4] = Rappturetool.jcpk[atoms[atom_id][3]]
+
+                    i = i+1
+                        
+        return atoms, connections        
+        
+    def getPolygons(self, draw):        
+            polygons = draw.findall('polygon')
+            polys = []
+            for polygon in polygons:
+                connections = {}            
+                vtk = polygon.find('vtk')
+                if vtk is not None:
+                    vtkt = self.getText(vtk, [])
+                    lines = vtkt.split('\n')
+                    i=0
+                    points = []
+                    while i < len(lines):
+                        line = lines[i]
+                        if line.startswith("POINTS"):
+                            tpoints = int(line.split()[1])
+                            for ii in range(math.ceil(tpoints/3)):
+                                i = i+1                                    
+                                line = lines[i]
+                                pp = line.split()
+                                if len(points) < tpoints:
+                                    points.append([float(pp[0]),float(pp[1]),float(pp[2])])
+                                if len(points) < tpoints:
+                                    points.append([float(pp[3]),float(pp[4]),float(pp[5])])
+                                if len(points) < tpoints:
+                                    points.append([float(pp[6]),float(pp[7]),float(pp[8])])
+                        i=i+1             
+                    polys.append(points)    
+            return polys
