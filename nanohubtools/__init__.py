@@ -31,7 +31,8 @@ from .nanohubtools import Nanohubtool
 from .qdottools import Qdotexplorer, SimpleQuantumDot, StackedQuantumDot
 from .pntoy import PNToy
 from .semi import Driftdiffusionlab
-from .crystalviewer import CrystalViewerMaterial, CrystalViewerBravais, CrystalViewerConstructor, CrystalViewerSimplified, CrystalLab
+from .crystalviewer import CrystalViewerMaterial, CrystalViewerBravais, CrystalViewerConstructor
+from .crystalsimplified import CrystalViewerSimplified, CrystalLab, BravaisViewerSimplified
 from .dftqe import DFTExplorer
 
 from ._version import __version__, version_info
