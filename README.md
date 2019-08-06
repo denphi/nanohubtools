@@ -38,6 +38,22 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 
 ## Available Nanohub Tools
 
+### BravaisViewerSimplified, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
+```python
+    nt.CrystalViewerConstructor(auth_data, modal=False)
+```
+
+### CrystalViewerSimplified, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
+```python
+    nt.CrystalViewerConstructor(auth_data, modal=False)
+```
+
+### CrystalLab, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
+```python
+    nt.CrystalLab(auth_data)
+```
+![CrystalLab](https://raw.githubusercontent.com/denphi/nanohubtools/master/images/CrystalLab.gif)
+
 ### CrystalViewerMaterial, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
 ```python
     nt.CrystalViewerMaterial(auth_data, modal=False)
@@ -56,12 +72,6 @@ tool.loadExperiment('IDSESSION') If an experiment was created befores
 ```python
     nt.CrystalViewerConstructor(auth_data, modal=False)
 ```
-
-### CrystalViewerSimplified, supported by [Crystal Viewer Tool](https://nanohub.org/resources/crystal_viewer)
-```python
-    nt.CrystalViewerConstructor(auth_data, modal=False)
-```
-
 
 ### SimpleQuantumDot, supported by [Quantum Dot Lab ](https://nanohub.org/resources/qdot/)
 ```python
