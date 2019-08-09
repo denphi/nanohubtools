@@ -33,6 +33,7 @@ from .pntoy import PNToy
 from .semi import Driftdiffusionlab
 from .crystalviewer import CrystalViewerMaterial, CrystalViewerBravais, CrystalViewerConstructor
 from .crystalsimplified import CrystalViewerSimplified, CrystalLab, BravaisViewerSimplified
+from .pntoysimplified import PNToySimplified
 from .dftqe import DFTExplorer
 
 from ._version import __version__, version_info

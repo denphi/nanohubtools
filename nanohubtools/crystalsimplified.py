@@ -198,8 +198,6 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
     def plotDrawingPlotly(self, draw, out):
         self.loggingMessage("Building Model", out)    
         label = self.getText(draw, ["index", "label"])
-        if out == None:
-            out = Floatview(title=label, mode = 'split-bottom')
         self.fig.data = []
         traces = []
         molecules = draw.findall('molecule')
@@ -251,31 +249,31 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                         xt[atom[3]] = xv
                         yt[atom[3]] = yv
                         zt[atom[3]] = zv
-                        
             for atom in list(xt.keys()):
                 colorscalea = [[0,"rgba(200,0,0,0.01)"], [1,self.jcpk[atom]]]
                 cv = [[1 for p in x] for x in xt[atom]]
-                self.fig.add_surface(
-                    x = xt[atom], 
-                    y = yt[atom], 
-                    z = zt[atom], 
-                    cauto = False,
-                    cmin = 0,
-                    cmax = 1,
-                    hovertext = atom,
-                    showscale = False,
-                    hoverinfo = "text",
-                    colorscale = colorscalea,
-                    surfacecolor = cv,
-                    connectgaps = False,
-                    lighting = { 
+                traces.append({
+                    'type' : 'surface',
+                    'x' : xt[atom], 
+                    'y' : yt[atom], 
+                    'z' : zt[atom], 
+                    'cauto' : False,
+                    'cmin' : 0,
+                    'cmax' : 1,
+                    'hovertext' : atom,
+                    'showscale' : False,
+                    'hoverinfo' : "text",
+                    'colorscale' : colorscalea,
+                    'surfacecolor' : cv,
+                    'connectgaps' : False,
+                    'lighting' : { 
                         'specular' : 1 ,
                         'ambient' : 0.4,
                         'diffuse' :0.5, 
                         'roughness' : 0.9, 
                         'fresnel' : 2.0,
                     },
-                )
+                })
                    
             
             xt = {}
@@ -287,7 +285,6 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                yt[c]=[]
                zt[c]=[]
                st[c]=[]
-               
             for atom1, connection in connections.items():
                 for atom2 in connection:
                     at1 = atom1
@@ -331,43 +328,44 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                         xt[atm1].append([])
                         zt[atm1].append([])
                         yt[atm1].append([])
-                   
             for c in colorset:    
                 opacity = 1.0
                 if c == "He":
                     opacity = 0.2
                 cv = [[1 for p in x] for x in xt[c]]
                 colorscalea = [[0,"rgba(200,0,0,0.01)"], [1,self.jcpk[c]]]
-                    
-                self.fig.add_surface(
-                    x = xt[c], 
-                    y = yt[c], 
-                    z = zt[c], 
-                    cauto = False,
-                    cmin = 0,
-                    cmax = 1,                    
-                    hovertext = '',    
-                    showscale = False,
-                    hoverinfo = 'text',
-                    colorscale = colorscalea,
-                    surfacecolor = cv,                    
-                    connectgaps = False,
-                    opacity = opacity
-                )
-                
+
+                traces.append({
+                    'type' : 'surface',
+                    'x' : xt[c], 
+                    'y' : yt[c], 
+                    'z' : zt[c], 
+                    'cauto' : False,
+                    'cmin' : 0,
+                    'cmax' : 1,                    
+                    'hovertext' : '',    
+                    'showscale' : False,
+                    'hoverinfo' : 'text',
+                    'colorscale' : colorscalea,
+                    'surfacecolor' : cv,                    
+                    'connectgaps' : False,
+                    'opacity' : opacity
+                })
         min_p = [t - 0.2 for t in min_p]
         max_p = [t + 0.2 for t in max_p]
         self.boundary = [min_p, max_p]
-        self.fig.add_mesh3d(
-            x = [], 
-            y = [], 
-            z = [], 
-            color = 'rgb(128,0,0)',
-            hovertext = '',
-            hoverinfo = 'text',
-            delaunayaxis = None
-        )
+        traces.append({
+            'type' : 'mesh3d',
+            'x' : [], 
+            'y' : [], 
+            'z' : [], 
+            'color' : 'rgb(128,0,0)',
+            'hovertext' : '',
+            'hoverinfo' : 'text',
+            'delaunayaxis' : None
+        })
 
+        self.fig.add_traces(traces)                                   
         with out:   
             clear_output()
             display(self.fig)
@@ -496,6 +494,7 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         if remove:
             self.removePlanes()
         planes = [[1,0,0],[0,1,0],[0,0,1]]
+        traces = []
         for plane in planes :
             self.normal = [ 
                 plane[0]*self.unitvectors[0][0]+plane[0]*self.unitvectors[0][1]+plane[0]*self.unitvectors[0][2],
@@ -516,15 +515,17 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                 delaunayaxis = 'y'
             elif len(set(zt)) == 1 : 
                 delaunayaxis = 'z'        
-            self.fig.add_mesh3d(
-                x = xt, 
-                y = yt, 
-                z = zt, 
-                color = 'rgb(128,0,0)',
-                hovertext = '',
-                hoverinfo = 'text',
-                delaunayaxis = delaunayaxis
-            )
+            traces.append({
+                'type' : 'mesh3d',
+                'x' : xt, 
+                'y' : yt, 
+                'z' : zt, 
+                'color' : 'rgb(128,0,0)',
+                'hovertext' : '',
+                'hoverinfo' : 'text',
+                'delaunayaxis' : delaunayaxis
+            })
+        self.fig.add_traces(traces)
 
     def removePlanes(self):
         changes = {'data':[]}
@@ -619,6 +620,7 @@ class CrystalLab (InstanceTracker):
         self.ref = id(self)
         InstanceTracker.__init__(self)                                          
         self.window = None
+        kwargs.setdefault('modal', False)                                         
         self.modal = False
         self.auth_data = credentials
         self.current_tool = "crystalviewer"
@@ -870,7 +872,7 @@ class CrystalViewerSimplified (CrystalSimplified):
         self.parameters_miller = CrystalViewerTool.parameters_miller
         self.hashtable = {}
 
-        CrystalSimplified.__init__(self, credentials)      
+        CrystalSimplified.__init__(self, credentials, **kwargs)      
 
 
     def buildCrystal(self):   
@@ -1125,12 +1127,12 @@ class CrystalViewerSimplified (CrystalSimplified):
                                 "default":"W",
                                 "value": "7",
                             },
-                            "Carbon meshes":{
-                                "materials":["Graphene", "Carbon nanotube", "Bucky ball(C60)"],
-                                "icon": "crystal8",
-                                "default":"Graphene",
-                                "value": "8",
-                            },
+                            //"Carbon meshes":{
+                            //    "materials":["Graphene", "Carbon nanotube", "Bucky ball(C60)"],
+                            //    "icon": "crystal8",
+                            //    "default":"Graphene",
+                            //    "value": "8",
+                            //},
                             "Rhombohedral":{
                                 "materials":["Bi2Te3"],
                                 "icon": "crystal9",
@@ -1891,7 +1893,7 @@ class CrystalViewerSimplified (CrystalSimplified):
             self.unitvectors = None
             if len(vbasis) == 3:  
                 self.unitvectors = vbasis
-            parameters = self.getCurrentParameters( { "Primitive_cell" : "yes" } )
+            parameters = self.getCurrentParameters( { "Primitive_cell" : "yes", 'Nx': '3', 'Ny':'3', 'Nz':'3' } )
             hashstr =  json.dumps(parameters, sort_keys=True).encode()        
             hashitem = hashlib.sha1(hashstr).hexdigest()
             #print (hashitem)
@@ -1899,12 +1901,6 @@ class CrystalViewerSimplified (CrystalSimplified):
             results = xml.find('output')
             drawings = self.getDrawings(results.findall('drawing'))  
             self.basis = drawings.get("structure1", None)
-
-            
-            if self.textbook == None:
-                self.textbook = self.unitcell
-            if self.lattice == None:
-                self.lattice = self.unitcell
                 
         with self.content_component_output:
             clear_output()  
@@ -2029,54 +2025,7 @@ class CrystalViewerSimplified (CrystalSimplified):
         return parameters;
     
 
-    def getCache(self):
-        parameters = self.getCurrentParameters( { "Primitive_cell" : "no" } )
-        hashstr =  json.dumps(parameters, sort_keys=True).encode()        
-        hashitem = hashlib.sha1(hashstr).hexdigest()
-        #print (hashitem)
-        if self.hashitem != hashitem:
-            xml = self.loadCache(parameters, hashitem)
-            results = xml.find('output')
-            drawings = self.getDrawings(results.findall('drawing'))            
-
-            self.unitcell = drawings.get("structure1", None)
-            self.lattice = drawings.get("structure2", None)
-            self.textbook = drawings.get("structure0", None)
-
-            polys = self.getPolygons(self.lattice);
-            vbasis = []
-            for points in polys:
-                p1 = np.array(points[0])
-                p2 = np.array(points[1])
-                p3 = np.array(points[2])
-                v1 = p2 - p1
-                v2 = p2 - p3
-                cp = np.cross(v1, v2)
-                cp = np.ceil(cp / (cp**2).sum()**0.5)
-                vbasis.append(cp)
-                if len(vbasis) == 3:
-                    break;
-            self.unitvectors = None
-            if len(vbasis) == 3:  
-                self.unitvectors = vbasis
-            parameters = self.getCurrentParameters( { "Primitive_cell" : "yes" } )
-            hashstr =  json.dumps(parameters, sort_keys=True).encode()        
-            hashitem = hashlib.sha1(hashstr).hexdigest()
-            #print (hashitem)
-            xml = self.loadCache(parameters, hashitem)
-            results = xml.find('output')
-            drawings = self.getDrawings(results.findall('drawing'))  
-            self.basis = drawings.get("structure1", None)
-
-            
-            if self.textbook == None:
-                self.textbook = self.unitcell
-            if self.lattice == None:
-                self.lattice = self.unitcell
-                
-        with self.content_component_output:
-            clear_output()  
-        self.hashitem = hashitem        
+  
         
 class BravaisViewerSimplified (CrystalSimplified):
     def __init__(self, credentials, **kwargs):
@@ -2106,7 +2055,7 @@ class BravaisViewerSimplified (CrystalSimplified):
         self.parameters_miller = CrystalViewerTool.parameters_miller
         self.hashtable = {}
 
-        CrystalSimplified.__init__(self, credentials)      
+        CrystalSimplified.__init__(self, credentials, **kwargs)      
 
 
     def buildCrystal(self):   
@@ -2285,6 +2234,14 @@ class BravaisViewerSimplified (CrystalSimplified):
                     super(props)
                     this.state = { 
                         crystals:{
+                            "Cubic":{
+                                "bravais":["Simple cubic","Body-centered cubic","Face-centered cubic"],
+                                "bravais_values":["simplecubic","bcc","fcc"],
+                                "icon": "bravais1",
+                                "default_value":"simplecubic",
+                                "default":"Simple cubic",
+                                "value": "25",
+                            },
                             "Triclinic":{
                                 "bravais":["Simple triclinic"],
                                 "bravais_values":["triclinic"],
@@ -2316,14 +2273,6 @@ class BravaisViewerSimplified (CrystalSimplified):
                                 "default_value":"tetragonal",
                                 "default":"Simple Tetragonal",
                                 "value": "24",
-                            },
-                            "Cubic":{
-                                "bravais":["Simple cubic","Body-centered cubic","Face-centered cubic"],
-                                "bravais_values":["simplecubic","bcc","fcc"],
-                                "icon": "bravais1",
-                                "default_value":"simplecubic",
-                                "default":"Simple cubic",
-                                "value": "25",
                             },
                             "Hexagonal":{
                                 "bravais":["Simple hexagonal"],
@@ -2687,7 +2636,7 @@ class BravaisViewerSimplified (CrystalSimplified):
                                         "action" : function(){ self.displayPlane('0.5', '[0,0,1]') },
                                     },
                                 },
-                                "label" : "Bravais",
+                                "label" : "Crystal",
                                 "alt": "Bravais",
                                 "action" : function(){ self.displayLattice() },
                             },

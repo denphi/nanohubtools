@@ -923,6 +923,22 @@ class Rappturetool (Nanohubtool):
         for i, field in enumerate(fields):
             component = self.getXY(field, 'component')
             label = self.getText(field, ["about","label"])
+            style = self.getText(field, ["about","style"])
+            line = {"color" : "blue"}
+            if (style != ""):
+                options = style.strip().split("-")
+                for option in options:
+                    val = option.strip().split(" ")
+                    if len(val)==2:
+                        if (val[0]=="color"):
+                            line["color"] = val[1]
+                        elif (val[0]=="linestyle"):
+                            if (val[1]=="dashed"):
+                                line["dash"] = "dash"
+                            elif (val[1]=="dotted"):
+                                line["dash"] = "dot"
+
+                
             if labels is not None:
                 label = label + " " + labels[i]
             title = self.getText(field, ["about","group"])
@@ -949,7 +965,8 @@ class Rappturetool (Nanohubtool):
                     'x' : xy[:,0],
                     'y' : xy[:,1],
                     'mode' : 'lines',
-                    'name' : label
+                    'name' : label,
+                    'line' : line,
                 }
                 traces.append(trace1)
         
