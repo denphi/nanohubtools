@@ -48,3 +48,25 @@ class FigureWidget (plotly.graph_objs.FigureWidget):
         plotly.offline.offline._get_jconfig = lambda config = None : _config
         super(FigureWidget, self).__init__(data, layout, frames, skip_invalid)
         plotly.offline.offline._get_jconfig = old_get_jconfig
+
+class SimplifiedFigureWidget (plotly.graph_objs.FigureWidget):
+    def __init__(
+        self,
+        data=None,
+        layout=None,
+        frames=None,
+        skip_invalid=False,
+        **kwargs
+    ):
+        default_config = {
+            'editable':False, 
+            'showLink':False, 
+            'linkText' : 'Export Data',
+            'showSendToCloud' : True,
+        }
+        config = kwargs.get('config', default_config);
+        old_get_jconfig = plotly.offline.offline._get_jconfig
+        _config = old_get_jconfig( config )
+        plotly.offline.offline._get_jconfig = lambda config = None : _config
+        super(SimplifiedFigureWidget, self).__init__(data, layout, frames, skip_invalid)
+        plotly.offline.offline._get_jconfig = old_get_jconfig

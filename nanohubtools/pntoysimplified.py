@@ -50,13 +50,15 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         self.hashitem = None;
         self.hashtable = {}        
         self.ref = id(self)        
-        self.junction_component_output = Output(layout=Layout(width="100%", padding="0px"))        
+        self.header_component_output = Output(layout=Layout(width="100%", padding="0px"))        
         self.parameters_component_output = Output(layout=Layout(height="100%", padding="0px"))
         self.content_component_output = Output(layout=Layout(flex='1', padding="0px", overflow="scroll"))        
-        self.fig = FigureWidget({
-            'data': [],
-            'layout': { 
-                'height' : 620,                 
+        self.theme = "plotly"
+        
+        self.fig = FigureWidget(
+            data= [],
+            layout= { 
+                'height' : 600,                 
                 'margin' : {
                     'b' : 40,
                     't' : 80,
@@ -71,13 +73,24 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                 'yaxis' : {
                     'exponentformat' :  "e",
                 },
+                'template' : self.theme,                
             }
-        })  
+        )  
+
         
         
         parameters = self.parameters_structure + self.parameters_materials + self.parameters_ambient + self.parameters_additional
         kwargs.setdefault('title', 'P-N junction')
         Rappturetool.__init__(self, credentials, "pntoy", parameters, extract_method="id", **kwargs)
+
+        
+    def exposedChangeTheme(self, theme):
+        self.updateTheme(theme)
+        
+    def updateTheme(self, theme):
+        if (theme != self.theme and (theme == "plotly_white" or theme == "plotly_dark"or theme == "plotly")):
+            self.theme = theme
+            self.fig.update({'layout':{'template':self.theme}});
 
         
     def displayOptions(self):        
@@ -201,12 +214,91 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             clear_output()
             #display(self.options_cont)
             display(VBox([                
-                self.junction_component_output,
+                self.header_component_output,
                 HBox([
                     self.parameters_component_output,
                     self.content_component_output
                 ], layout=Layout(flex='1', height="100%"))
             ], layout=Layout(flexDirection="row", width="100%", height="700px")))
+
+    def buildHeader(self):   
+        header_view = '''
+        <style>        
+            .pnLabLogo{
+                background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+Cjxzdmcgd2lkdGg9IjY0MCIgaGVpZ2h0PSI0ODAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6c3ZnPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiA8ZyBjbGFzcz0ibGF5ZXIiPgogIDx0aXRsZT5MYXllciAxPC90aXRsZT4KICA8cmVjdCBmaWxsPSIjZmZmIiBoZWlnaHQ9Ijg5IiBpZD0ic3ZnXzEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIiB3aWR0aD0iNDY1IiB4PSIxNiIgeT0iMCIvPgogIDxyZWN0IGZpbGw9IiMwMDAiIGhlaWdodD0iODkiIGlkPSJzdmdfMTAxIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIgd2lkdGg9IjE2NyIgeD0iMzEzIiB5PSIwIi8+CiAgPHJlY3QgZmlsbD0iIzAwMCIgaGVpZ2h0PSI4OSIgaWQ9InN2Z182MCIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIHdpZHRoPSIxNjciIHg9IjE2IiB5PSIwIi8+CiAgPGNpcmNsZSBjeD0iNDMiIGN5PSIyMyIgZmlsbD0iI2ZmZiIgaWQ9InN2Z18yIiByPSIxNS41NTYzNTEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iNDMiIGN5PSI2NSIgZmlsbD0iI2ZmZiIgaWQ9InN2Z180IiByPSIxNS41NTYzNTEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMTYxIiBjeT0iMjMiIGZpbGw9IiNmZmYiIGlkPSJzdmdfMTEiIHI9IjE1LjU1NjM1MSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8Y2lyY2xlIGN4PSIxNjEiIGN5PSI2NSIgZmlsbD0iI2ZmZiIgaWQ9InN2Z18xMCIgcj0iMTUuNTU2MzUxIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxjaXJjbGUgY3g9IjIwNyIgY3k9IjIzIiBmaWxsPSIjZmZmIiBpZD0ic3ZnXzI2IiByPSIxNS41NTYzNTEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMjA3IiBjeT0iNjUiIGZpbGw9IiNmZmYiIGlkPSJzdmdfMjUiIHI9IjE1LjU1NjM1MSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8Y2lyY2xlIGN4PSIyNDgiIGN5PSIyMyIgZmlsbD0iI2ZmZiIgaWQ9InN2Z18yMyIgcj0iMTUuNTU2MzUxIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxjaXJjbGUgY3g9IjI0OCIgY3k9IjY1IiBmaWxsPSIjZmZmIiBpZD0ic3ZnXzIyIiByPSIxNS41NTYzNTEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMjkyIiBjeT0iMjMiIGZpbGw9IiNmZmYiIGlkPSJzdmdfMjAiIHI9IjE1LjU1NjM1MSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8Y2lyY2xlIGN4PSIyOTIiIGN5PSI2NSIgZmlsbD0iI2ZmZiIgaWQ9InN2Z18xOSIgcj0iMTUuNTU2MzUxIiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxjaXJjbGUgY3g9IjMzMyIgY3k9IjIzIiBmaWxsPSIjZmZmIiBpZD0ic3ZnXzE3IiByPSIxNS41NTYzNTEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPGNpcmNsZSBjeD0iMzMzIiBjeT0iNjUiIGZpbGw9IiNmZmYiIGlkPSJzdmdfMTYiIHI9IjE1LjU1NjM1MSIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiLz4KICA8Y2lyY2xlIGN4PSI0NTYiIGN5PSIyMyIgZmlsbD0iI2ZmZiIgaWQ9InN2Z18yOSIgcj0iMTUuNTU2MzM1IiBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxjaXJjbGUgY3g9IjQ1NiIgY3k9IjY1IiBmaWxsPSIjZmZmIiBpZD0ic3ZnXzI4IiByPSIxNS41NTYzNTEiIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIyIi8+CiAgPHRleHQgZmlsbD0iIzAwMCIgZm9udC1mYW1pbHk9InNlcmlmIiBmb250LXNpemU9IjI0IiBpZD0ic3ZnXzM2IiBzdHJva2U9IiMwMDAiIHRleHQtYW5jaG9yPSJtaWRkbGUiIHg9IjQzIiB5PSIzMSI+KzwvdGV4dD4KICA8dGV4dCBmaWxsPSIjMDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfMzciIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iNDMiIHk9IjczIj4rPC90ZXh0PgogIDx0ZXh0IGZpbGw9IiMwMDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z180NyIgc3Ryb2tlPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSIxNjEiIHk9IjMxIj4rPC90ZXh0PgogIDx0ZXh0IGZpbGw9IiMwMDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z180NiIgc3Ryb2tlPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSIxNjEiIHk9IjczIj4rPC90ZXh0PgogIDx0ZXh0IGZpbGw9IiMwMDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z180NSIgc3Ryb2tlPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSIyMDciIHk9IjMxIj4rPC90ZXh0PgogIDx0ZXh0IGZpbGw9IiMwMDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z180NCIgc3Ryb2tlPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSIyMDciIHk9IjczIj4rPC90ZXh0PgogIDx0ZXh0IGZpbGw9IiMwMDAiIGZvbnQtZmFtaWx5PSJzZXJpZiIgZm9udC1zaXplPSIyNCIgaWQ9InN2Z18xMDAiIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iMjkyIiB5PSIxOCI+XzwvdGV4dD4KICA8dGV4dCBmaWxsPSIjMDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfOTkiIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iMjkyIiB5PSI2MyI+XzwvdGV4dD4KICA8dGV4dCBmaWxsPSIjMDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfODgiIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iMzMzIiB5PSIxOCI+XzwvdGV4dD4KICA8dGV4dCBmaWxsPSIjMDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfOTciIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iMzMzIiB5PSI2MyI+XzwvdGV4dD4KICA8dGV4dCBmaWxsPSIjMDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfOTAiIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iNDU2IiB5PSIxOCI+XzwvdGV4dD4KICA8dGV4dCBmaWxsPSIjMDAwIiBmb250LWZhbWlseT0ic2VyaWYiIGZvbnQtc2l6ZT0iMjQiIGlkPSJzdmdfOTUiIHN0cm9rZT0iIzAwMCIgdGV4dC1hbmNob3I9Im1pZGRsZSIgeD0iNDU2IiB5PSI2MyI+XzwvdGV4dD4KICA8cmVjdCBmaWxsPSIjMDAwIiBoZWlnaHQ9IjUzIiBpZD0ic3ZnXzEwMiIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIHdpZHRoPSIxNCIgeD0iMCIgeT0iMTgiLz4KICA8cmVjdCBmaWxsPSIjMDAwIiBoZWlnaHQ9IjUzIiBpZD0ic3ZnXzEwMyIgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjIiIHdpZHRoPSIxNCIgeD0iNDgwIiB5PSIxOCIvPgogIDx0ZXh0IGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSJTYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBpZD0ic3ZnXzEwNCIgc3Ryb2tlPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSIxMDAiIHk9IjY5Ij5QPC90ZXh0PgogIDx0ZXh0IGZpbGw9IiNmZmYiIGZvbnQtZmFtaWx5PSJTYW5zLXNlcmlmIiBmb250LXNpemU9IjcwIiBpZD0ic3ZnXzEwNSIgc3Ryb2tlPSIjMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIiB4PSIzOTUiIHk9IjY5Ij5OPC90ZXh0PgogPC9nPgo8L3N2Zz4=");
+                height: 80px;
+                background-repeat: no-repeat;
+                background-position-x: center;
+                background-size: 450px;
+                background-position-y: 8px;
+            }
+                           
+            .pnLabHeader{
+                height: 80px;
+                background: #eee;
+                overflow: hidden;
+            }
+            .pnLabTitle{
+                position: absolute;
+                top: 20px;
+                border-bottom: 1px solid #000;
+                width: 40%;
+                text-align: right;
+                font-size: 20px;
+                right: 0px;
+            }
+            div.output_subarea{
+                padding:0px
+            }            
+        </style>
+
+        <div id="pnlab_header_''' + str(self.ref) + '''"></div>
+        '''
+
+        header_js = '''
+            requirejs.config({
+                paths: {
+                    'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
+                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                }
+            });
+
+            requirejs(['react', 'react-dom'], function(React, ReactDOM) {
+                class Util {
+                    static create_UUID(){
+                        var dt = new Date().getTime();
+                        var uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                            var r = (dt + Math.random()*16)%16 | 0;
+                            dt = Math.floor(dt/16);
+                            return (c=='x' ? r :(r&0x3|0x8)).toString(16);
+                        });
+                        return uuid;
+                    }
+                }
+
+     
+                class PNLabComponent extends React.Component {
+                    constructor(props) {
+                        super(props)
+                    }    
+
+                    render(){
+                        var logo = React.createElement("div", {key:Util.create_UUID(), className:"pnLabLogo", style:{}})
+                        var title = React.createElement("div", {key:Util.create_UUID(), className:"pnLabTitle", style:{}},"PN-Junction Lab")
+                        
+                        var div = React.createElement("div", {key:Util.create_UUID(), className:"pnLabHeader"}, [logo, title])                        
+                        return div
+                    }
+                }
+
+                ReactDOM.render(
+                    React.createElement(PNLabComponent, {}),
+                    document.getElementById("pnlab_header_''' + str(self.ref) + '''")
+                );
+            });
+        '''        
+       
+        return header_view, header_js
 
     def buildParameters(self):    
         parameter_component_view = '''
@@ -248,9 +340,51 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                 flex-direction:column;
                 justify-content:flex-start;
             }
+            
+            .ComponentTheme{
+                display: flex;
+                flex-direction: row;
+                justify-content: space-around;
+                width: 130px;
+                bottom: 10px;
+                position: absolute;
+            }
+
+            .ComponentThemeDark, .ComponentThemeWhite, .ComponentThemeDefault{
+                height: 20px;
+                width: 20px;
+                border-radius:20px;
+                border:1px solid #707070;  
+                font-size: 15px;
+                color : #707070;        
+            }
+                        
+            .ComponentThemeDark{
+                background-color: #000000;        
+            }
+            
+            .ComponentThemeWhite{
+                background-color: #FFFFFF;
+            }        
+
+            .ComponentThemeDefault{
+                background-color: #E5ecf6;
+            }        
+
+            .ComponentThemeDark:hover{
+                background-color: #555555;
+            }
+            
+            .ComponentThemeWhite:hover{
+                background-color: #EEEEEE;
+            }                 
+
+            .ComponentThemeDefault:hover{
+                background-color: #c2cad4;
+            }                 
                     
         </style>
-        <div id="parameter_''' + str(self.ref) + '''"></div>
+        <div id="pnlab_parameter_''' + str(self.ref) + '''"></div>
         '''
 
         parameter_component_js = '''
@@ -280,10 +414,10 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                     let self = this;
                     this.state = { 
                         parameters:{
-                            "options":{
-                                "alt" : "Settings",
-                                "label" : "Settings",
-                                "action" : function(){ self.displayOptions() },
+                            "band":{
+                                "alt" : "Energy Band Diagram",
+                                "label" : "Energy Band",
+                                "action" : function(){ self.displayParameter('band') },
                             },
                             "iv":{
                                 "alt" : "I-V Characteristics",
@@ -295,11 +429,6 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                                 "label" : "C-V Characteristics",
                                 "action" : function(){ self.displayParameter('cv') },
                             },
-                            "band":{
-                                "alt" : "Energy Band Diagram",
-                                "label" : "Energy Band",
-                                "action" : function(){ self.displayParameter('band') },
-                            },
                             "current":{
                                 "alt" : "Electron and Hole Current",
                                 "label" : "Total Current",
@@ -309,11 +438,6 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                                 "alt" : "Electron and Hole Density",
                                 "label" : "Total Density",
                                 "action" : function(){ self.displayParameter('density') },
-                            },
-                            "carrier":{
-                                "alt" : "Excess Carrier Density",
-                                "label" : "Carrier Density",
-                                "action" : function(){ self.displayParameter('carrier') },
                             },
                             "net":{
                                 "alt" : "Net Charge Density",
@@ -335,11 +459,31 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                                 "label" : "Recombination",
                                 "action" : function(){ self.displayParameter('recombination') },
                             },
+                            "carrier":{
+                                "alt" : "Excess Carrier Density",
+                                "label" : "Carrier Density",
+                                "action" : function(){ self.displayParameter('carrier') },
+                            },
+                            "options":{
+                                "alt" : "Settings",
+                                "label" : "Settings",
+                                "action" : function(){ self.displayOptions() },
+                            },
+                            
 
                         }, 
                         selectedParameter:"''' + self.current_view + '''",
                     } 
                 }    
+
+                changeTheme( option ){
+                    if (option == "dark")
+                        PNToySimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly_dark');
+                    else if (option == "white")
+                        PNToySimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly_white');
+                    else
+                        PNToySimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly');
+                }
 
                 todo(){
                     PNToySimplified_''' + str(self.ref) + '''["exposedTest"]("TODO", "TODO");
@@ -402,6 +546,13 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                         children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOptionSpacer"}))
                     }  
 
+                    children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentTheme"}, [
+                        React.createElement("div", {key:Util.create_UUID(), className:""}, "Theme"),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeDefault", onClick:function(e){self.changeTheme("default")}}),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeWhite", onClick:function(e){self.changeTheme("white")}}),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeDark", onClick:function(e){self.changeTheme("dark")}}),
+                    ]))
+
                     var components = React.createElement("div", {key:Util.create_UUID(), className:"ComponentParameters"}, children)
 
                     var opt = React.createElement("div", {key:Util.create_UUID(), className:"", style:{display:"flex", flexDirection:"row", backgroundColor:'#EEEEEE', justifyContent:'flex-start', height:'700px', width:'160px', borderRight:'4px solid #FFF'}}, [components])
@@ -413,19 +564,19 @@ class PNToySimplified (InstanceTracker, Rappturetool):
 
             ReactDOM.render(
                 React.createElement(ParametersComponent, {}),
-                document.getElementById("parameter_''' + str(self.ref) + '''")
+                document.getElementById("pnlab_parameter_''' + str(self.ref) + '''")
             );
         });
         '''      
         return parameter_component_view, parameter_component_js;            
         
     def displayFrame(self):
-        #crystal_component_view, crystal_component_js = self.buildCrystal()
+        header_component_view, header_component_js = self.buildHeader()
         parameter_component_view, parameter_component_js = self.buildParameters()
         
-        #with self.junction_component_output:
-        #    display(IHTML(crystal_component_view))
-        #    display(Javascript(crystal_component_js)) 
+        with self.header_component_output:
+            display(IHTML(header_component_view))
+            display(Javascript(header_component_js)) 
     
         with self.parameters_component_output:
             display(IHTML(parameter_component_view))
@@ -493,7 +644,7 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             self.plotXY([self.cv],self.content_component_output)
         elif option == "iv":
             self.plotXY([self.iv],self.content_component_output)
-    
+        #self.sl.value = 1
             
     def loadCache(self, parameters, hashitem):
         xml = None
@@ -696,12 +847,12 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         })
 
 
-        sl = SelectionSlider(options=options, value=options[0], description=label)
+        self.sl = SelectionSlider(options=options, value=options[0], description=label)
         play = Play(interval=500, value=0, min=0, max=len(frames), description=label )
-        sl.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=sl: Rappturetool.updateFrame(this, change, f, g, p, sl), "value")
-        play.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=sl: setattr(sl, 'value', list(f.keys())[change['new']]), "value")
-        sl.layout.width='99%'
-        container = VBox([self.fig,play,sl], layout=layout)   
+        self.sl.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: Rappturetool.updateFrame(this, change, f, g, p, sl), "value")
+        play.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: setattr(self.sl, 'value', list(f.keys())[change['new']]), "value")
+        self.sl.layout.width='99%'
+        container = VBox([self.fig,play,self.sl], layout=layout)   
 
         out.clear_output()
         with out:

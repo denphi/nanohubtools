@@ -80,7 +80,7 @@ setup_args = {
     'include_package_data' : True,
     'install_requires' : [
         'floatview>=0.1.11',
-        'plotly>=3.8.1',
+        'plotly>=4.1.0',
         'numpy>=1.16.0',
         'hublib>=0.9.94',
     ],

@@ -4,7 +4,7 @@ from ipywidgets import HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML                                    
 from hublib import ui
-from .plotlywidget import FigureWidget       
+from .plotlywidget import FigureWidget      
 import uuid, weakref, inspect, time
 import xml.etree.ElementTree as ET
 import hashlib, json
@@ -31,16 +31,16 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         'Li' : 'rgba(188,190,187,1.0)',
         'Be' : 'rgba(134,134,134,1.0)',
         'B' : 'rgba(122,117,114,1.0)',
-        'C' : 'rgba(51,160,44,1.0)',
+        'C' : 'rgba(31,120,180,1.0)',
         'N' : 'rgba(177,89,40,1.0)',
         'O' : 'rgba(238,32,16,1.0)',
         'F' : 'rgba(177,146,82,1.0)',
         'Ne' : 'rgba(255,0,0,1.0)',
         'Na' : 'rgba(218,220,217,1.0)',
         'Mg' : 'rgba(195,195,185,1.0)',
-        'Al' : 'rgba(166,206,227,1.0)',
-        'Si' : 'rgba(31,120,180,1.0)',
-        'P' : 'rgba(255,255,153,1.0)',
+        'Al' : 'rgba(255,0,102,1.0)',
+        'Si' : 'rgba(73,4,170,1.0)',
+        'P' : 'rgba(255,0,9,1.0)',
         'S' : 'rgba(248,239,146,1.0)',
         'Cl' : 'rgba(251,154,153,1.0)',
         'Ar' : 'rgba(221,112,244,1.0)',
@@ -56,9 +56,9 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         'Ni' : 'rgba(181,165,150,1.0)',
         'Cu' : 'rgba(196,78,46,1.0)',
         'Zn' : 'rgba(255,0,0,1.0)',
-        'Ga' : 'rgba(253,191,111,1.0)',
-        'Ge' : 'rgba(255,127,0,1.0)',
-        'As' : 'rgba(202,178,214,1.0)',
+        'Ga' : 'rgba(255,51,0,1.0)',
+        'Ge' : 'rgba(0,255,0,1.0)',
+        'As' : 'rgba(255,255,0,1.0)',
         'Se' : 'rgba(191,71,75,1.0)',
         'Br' : 'rgba(154,32,24,1.0)',
         'Kr' : 'rgba(164,162,175,1.0)',
@@ -76,7 +76,7 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         'Cd' : 'rgba(106,106,104,1.0)',
         'In' : 'rgba(106,61,154,1.0)',
         'Sn' : 'rgba(126,120,94,1.0)',
-        'Sb' : 'rgba(159,99,182,1.0)',
+        'Sb' : 'rgba(0,0,191,1.0)',
         'Te' : 'rgba(150,155,158,1.0)',
         'I' : 'rgba(95,98,105,1.0)',
         'Xe' : 'rgba(0,0,255,1.0)',
@@ -99,7 +99,7 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         'Lu' : 'rgba(160,161,153,1.0)',
         'Hf' : 'rgba(171,188,178,1.0)',
         'Ta' : 'rgba(154,155,160,1.0)',
-        'W' : 'rgba(138,131,123,1.0)',
+        'W' : 'rgba(60,0,255,1.0)',
         'Re' : 'rgba(123,123,121,1.0)',
         'Os' : 'rgba(185,196,200,1.0)',
         'Ir' : 'rgba(137,130,112,1.0)',
@@ -140,7 +140,7 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
     def __init__(self, credentials, **kwargs):
         InstanceTracker.__init__(self)                                  
         
-        self.samples = 16
+        self.samples = 20
         self.resize = .15
         self.phi = np.linspace(0, 2*np.pi, self.samples)
         self.theta = np.linspace(-np.pi/2, np.pi/2, self.samples)
@@ -158,16 +158,30 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         self.x = self.x.flatten() * 4 * self.resize
         self.y = self.y.flatten() * 4 * self.resize
         self.z = self.z.flatten() * 4 * self.resize
-        self.fig = FigureWidget({
-            'data': [],
-            'layout': { 'height' : 600, 'scene':{'aspectmode':'data'}, 'margin' : {'l':0,'r':0,'t':0,'b':0} }
-        })  
+        self.theme = "plotly_white"
+        
+        self.fig = FigureWidget(
+            data= [],
+            layout= { 
+                'height' : 600, 
+                'scene':{'aspectmode':'data'}, 
+                'margin' : {'l':0,'r':0,'t':0,'b':0},
+                'template' : self.theme,                
+            }
+        )  
         self.ref = id(self)
         parameters = self.parameters_structure + self.parameters_miller + self.parameters_additional
         kwargs.setdefault('title', 'CrystalViewer - Materials')
         CrystalViewerTool.__init__(self, credentials, parameters, **kwargs)
         self.reset_options = False
         
+    def exposedChangeTheme(self, theme):
+        self.updateTheme(theme)
+        
+    def updateTheme(self, theme):
+        if (theme != self.theme and (theme == "plotly_white" or theme == "plotly_dark")):
+            self.theme = theme
+            self.fig.update({'layout':{'template':self.theme}});
 
     def refreshView(self):
         pass;
@@ -267,10 +281,10 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                     'surfacecolor' : cv,
                     'connectgaps' : False,
                     'lighting' : { 
-                        'specular' : 1 ,
-                        'ambient' : 0.4,
-                        'diffuse' :0.5, 
-                        'roughness' : 0.9, 
+                        'specular' : 2 ,
+                        'ambient' : 0.8,
+                        'diffuse' : 1, 
+                        'roughness' : 1, 
                         'fresnel' : 2.0,
                     },
                 })
@@ -1397,8 +1411,40 @@ class CrystalViewerSimplified (CrystalSimplified):
             color: #707070;        
         }
         
+        .ComponentTheme{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            width: 130px;
+            bottom: 10px;
+            position: absolute;
+        }
+
+        .ComponentThemeDark, .ComponentThemeWhite{
+            height: 20px;
+            width: 20px;
+            border-radius:20px;
+            border:1px solid #707070;  
+            font-size: 15px;
+            color : #707070;        
+        }
                     
-                    
+        .ComponentThemeDark{
+            background-color: #000000;        
+        }
+        
+        .ComponentThemeWhite{
+            background-color: #FFFFFF;
+        }        
+
+        .ComponentThemeDark:hover{
+            background-color: #555555;
+        }
+        
+        .ComponentThemeWhite:hover{
+            background-color: #EEEEEE;
+        }        
+
         </style>
         <div id="parameter_''' + str(self.ref) + '''"></div>
         '''
@@ -1623,7 +1669,12 @@ class CrystalViewerSimplified (CrystalSimplified):
                     this.callbackParameter(parameter)
                 }
 
-
+                changeTheme( option ){
+                    if (option == "dark")
+                        CrystalViewerSimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly_dark');
+                    else
+                        CrystalViewerSimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly_white');
+                }
 
                 render(){
                     var children = Array()    
@@ -1693,6 +1744,12 @@ class CrystalViewerSimplified (CrystalSimplified):
                             }
                         }
                     }  
+
+                    children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentTheme"}, [
+                        React.createElement("div", {key:Util.create_UUID(), className:""}, "Theme"),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeWhite", onClick:function(e){self.changeTheme("white")}}),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeDark", onClick:function(e){self.changeTheme("dark")}}),
+                    ]))
 
                     var components = React.createElement("div", {key:Util.create_UUID(), className:"ComponentParameters"}, children)
 
@@ -1871,6 +1928,9 @@ class CrystalViewerSimplified (CrystalSimplified):
         if self.hashitem != hashitem:
             xml = self.loadCache(parameters, hashitem)
             results = xml.find('output')
+            strings = self.getDrawings(results.findall('string'))  
+            self.info = strings.get("latt_info", None)
+            
             drawings = self.getDrawings(results.findall('drawing'))            
 
             self.unitcell = drawings.get("structure1", None)
@@ -2030,7 +2090,7 @@ class CrystalViewerSimplified (CrystalSimplified):
 class BravaisViewerSimplified (CrystalSimplified):
     def __init__(self, credentials, **kwargs):
         self.hashitem = None;
-        self.current_view = "basis";        
+        self.current_view = "textbook";
         self.crystal_component_output = Output(layout=Layout(width="100%", padding="0px"))
         self.parameters_component_output = Output(layout=Layout(height="100%", padding="0px"))
         self.content_component_output = Output(layout=Layout(flex='1', padding="0px", overflow="scroll"))        
@@ -2202,6 +2262,39 @@ class BravaisViewerSimplified (CrystalSimplified):
             background-image: ''' + self.buildIcon("bravais7.png") + ''';
         } 
 
+        .ComponentTheme{
+            display: flex;
+            flex-direction: row;
+            justify-content: space-around;
+            width: 130px;
+            bottom: 10px;
+            position: absolute;
+        }
+
+        .ComponentThemeDark, .ComponentThemeWhite{
+            height: 20px;
+            width: 20px;
+            border-radius:20px;
+            border:1px solid #707070;  
+            font-size: 15px;
+            color : #707070;        
+        }
+                    
+        .ComponentThemeDark{
+            background-color: #000000;        
+        }
+        
+        .ComponentThemeWhite{
+            background-color: #FFFFFF;
+        }        
+
+        .ComponentThemeDark:hover{
+            background-color: #555555;
+        }
+        
+        .ComponentThemeWhite:hover{
+            background-color: #EEEEEE;
+        }   
         </style>
         <div id="crystal_''' + str(self.ref) + '''"></div>
         '''
@@ -2303,7 +2396,7 @@ class BravaisViewerSimplified (CrystalSimplified):
                         selectedBravais:this.state.crystals[crystal].default,
                         showBravais: true
                     })
-                    CrystalViewerSimplified_''' + str(self.ref) + '''['exposedSelectBravais'](this.state.crystals[crystal].value, this.state.crystals[crystal].default_value)
+                    BravaisViewerSimplified_''' + str(self.ref) + '''['exposedSelectBravais'](this.state.crystals[crystal].value, this.state.crystals[crystal].default_value)
                 }
 
                 selectBravais(bravais, bravais_value){
@@ -2312,7 +2405,7 @@ class BravaisViewerSimplified (CrystalSimplified):
                         selectedBravais:bravais,
                     })
                     var sc = this.state.selectedCrystal
-                    CrystalViewerSimplified_''' + str(self.ref) + '''['exposedSelectBravais'](this.state.crystals[sc].value, bravais_value)
+                    BravaisViewerSimplified_''' + str(self.ref) + '''['exposedSelectBravais'](this.state.crystals[sc].value, bravais_value)
                 }
 
                 showBravais( status ){
@@ -2606,6 +2699,12 @@ class BravaisViewerSimplified (CrystalSimplified):
                     let self = this;
                     this.state = { 
                         parameters:{
+                            "textbook":{
+                                "children":{},
+                                "alt": "Textbook Basis",
+                                "label" : "Textbook Basis",
+                                "action" : function(){ self.displayTextBook() },
+                            },
                             "basis":{
                                 "children":{},
                                 "alt": "Basis",
@@ -2637,7 +2736,7 @@ class BravaisViewerSimplified (CrystalSimplified):
                                     },
                                 },
                                 "label" : "Crystal",
-                                "alt": "Bravais",
+                                "alt": "Crystal",
                                 "action" : function(){ self.displayLattice() },
                             },
                         }, 
@@ -2647,25 +2746,36 @@ class BravaisViewerSimplified (CrystalSimplified):
                 }    
 
                 todo(){
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedTest"]("TODO", "TODO");
+                    BravaisViewerSimplified_''' + str(self.ref) + '''["exposedTest"]("TODO", "TODO");
                 }
 
                 displayOptions(){
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayOptions"]();
+                    BravaisViewerSimplified_''' + str(self.ref) + '''["exposedDisplayOptions"]();
+                }
+
+                displayTextBook(){
+                    BravaisViewerSimplified_''' + str(self.ref) + '''["exposedDisplayTextBook"]();
                 }
 
                 displayBasis(){
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayBasis"]();
+                    BravaisViewerSimplified_''' + str(self.ref) + '''["exposedDisplayBasis"]();
                 }
                 
                 displayLattice(){
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedDisplayLattice"]();
+                    BravaisViewerSimplified_''' + str(self.ref) + '''["exposedDisplayLattice"]();
                 }
 
                 displayPlane(center, plane){
-                    CrystalViewerSimplified_''' + str(self.ref) + '''["exposedUpdatePlane"](center, plane);
+                    BravaisViewerSimplified_''' + str(self.ref) + '''["exposedUpdatePlane"](center, plane);
                 }
                 
+                changeTheme( option ){
+                    if (option == "dark")
+                        BravaisViewerSimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly_dark');
+                    else
+                        BravaisViewerSimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly_white');
+                }
+
                 
                 selectParameter(parameter){
                     this.setState({
@@ -2753,6 +2863,13 @@ class BravaisViewerSimplified (CrystalSimplified):
                         }
                     }  
 
+                    children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentTheme"}, [
+                        React.createElement("div", {key:Util.create_UUID(), className:""}, "Theme"),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeWhite", onClick:function(e){self.changeTheme("white")}}),
+                        React.createElement("div", {key:Util.create_UUID(), className:"ComponentThemeDark", onClick:function(e){self.changeTheme("dark")}}),
+                    ]))
+
+
                     var components = React.createElement("div", {key:Util.create_UUID(), className:"ComponentParameters"}, children)
 
                     var opt = React.createElement("div", {key:Util.create_UUID(), className:"", style:{display:"flex", flexDirection:"row", backgroundColor:'#EEEEEE', justifyContent:'flex-start', height:'700px', width:'140px', borderRight:'4px solid #FFF'}}, [components])
@@ -2772,7 +2889,7 @@ class BravaisViewerSimplified (CrystalSimplified):
 
     def buildInterfaceJS(self):
         interface_js = "<script type='text/Javascript'>\n";
-        refobj = "CrystalViewerSimplified_" + str(self.ref)
+        refobj = "BravaisViewerSimplified_" + str(self.ref)
         interface_js += "var " + refobj + " = {};\n";
         for method in inspect.getmembers(self, predicate=inspect.ismethod):
             if (method[0].startswith("exposed")):
@@ -2802,6 +2919,8 @@ class BravaisViewerSimplified (CrystalSimplified):
             self.exposedDisplayOptions()
         elif (self.current_view == "basis"):
             self.exposedDisplayBasis()
+        elif (self.current_view == "textbook"):
+            self.exposedDisplayTextBook()
         elif (self.current_view == "lattice"):
             self.exposedDisplayLattice()
             if (self.normal != None):
@@ -2893,7 +3012,6 @@ class BravaisViewerSimplified (CrystalSimplified):
 
             
     def exposedDisplayOptions(self):
-        self.normal = None        
         self.getCache()
         self.current_view = "options"
         with self.content_component_output:
@@ -2901,11 +3019,16 @@ class BravaisViewerSimplified (CrystalSimplified):
             display(self.options_cont)
      
     def exposedDisplayBasis(self):
-        self.normal = None        
         self.getCache()        
         self.current_view = "basis"
         if self.basis != None:
             self.plotDrawing(self.basis,self.content_component_output)
+
+    def exposedDisplayTextBook(self):
+        self.getCache()        
+        self.current_view = "textbook"
+        if self.textbook != None:
+            self.plotDrawing(self.textbook,self.content_component_output)
             
     def exposedDisplayLattice(self):
         self.getCache()        
@@ -3006,24 +3129,13 @@ class BravaisViewerSimplified (CrystalSimplified):
             results = xml.find('output')
             self.results = results
             drawings = self.getDrawings(results.findall('drawing'))            
+            self.textbook = drawings.get("structure15", None)
+            self.basis = drawings.get("structure16", None)
             self.lattice = drawings.get("structure10", None)
             self.unitvectors = [[1,0,0],[0,1,0],[0,0,1]]
             
-
-            default_values = [self.options['Nx'].value,self.options['Ny'].value,self.options['Nz'].value]
-            if (self.options["Crystal_system"].value == '25' and (self.options['25'].value == 'fcc' or self.options['25'].value == 'bcc' )):
-                parameters = self.getCurrentParameters( { 'Nx' : '1', 'Ny' : '1','Nz' : '1' } )
-            else:
-                parameters = self.getCurrentParameters( { 'Nx' : '2', 'Ny' : '2','Nz' : '2' } )            
-            hashstr =  json.dumps(parameters, sort_keys=True).encode()
-            hashitem = hashlib.sha1(hashstr).hexdigest()
-            xml = self.loadCache(parameters, hashitem)
-            results = xml.find('output')
-            drawings = self.getDrawings(results.findall('drawing'))            
-            self.basis = drawings.get("structure10", None)
-            self.options['Nx'].value = default_values[0]
-            self.options['Ny'].value = default_values[1]
-            self.options['Nz'].value = default_values[2]
+            strings = self.getDrawings(results.findall('string'))
+            self.info = drawings.get("latt_info", None)
                 
         with self.content_component_output:
             clear_output()  

@@ -88,7 +88,7 @@ def launch_tool(driver_json, headers):
         return run_json['session']
     else:
         msg = 'launch_tool failed ({0}): {1}\n'.format(run_json['code'], run_json['message'])
-        sys.stderr.write(msg)
+        print(msg)
         sys.exit(1)
 
 def load_tool_definition(tool_name, headers):
