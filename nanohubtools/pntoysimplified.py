@@ -1,5 +1,5 @@
 from .rappturetool import Rappturetool
-from ipywidgets import HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box, Textarea, SelectionSlider, Play
+from ipywidgets import Text, HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box, Textarea, SelectionSlider, Play
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML                                    
 from hublib import ui
@@ -11,6 +11,51 @@ import math, os, base64
 import numpy as np
 import uuid, weakref, inspect, time
 from datetime import datetime
+from  hublib.ui.numvalue import NumValue
+import re
+
+class ScientificNumber(NumValue):
+    def __init__(self, name, value, **kwargs):
+        newval = '%.2e' % value        
+        NumValue.__init__(self, 'float', name, newval, **kwargs)
+        self.dd.layout = {'width': '140px'}
+        
+    def _create_widget(self, ntype, value, min, max):
+        if min is not None and max is None:
+            raise ValueError("Min is set but not Max.")
+        if min is None and max is not None:
+            raise ValueError("Max is set but not Min.")
+        return Text(value=value)
+    
+    def _cb(self, w):
+        w['new'] = w['new'].replace("E", "e")
+        try:
+            newval = float(w['new'])
+        except:
+            try:
+                newval = float(re.sub(r'e\+?\-?','',w['new']))
+            except:
+                self.dd.value = w['old']
+        
+    @property
+    def value(self):
+        val = 0
+        try:
+            val = float(self.dd.value)
+        except:
+            try:
+                val = float(re.sub(r'e\+?\-?','',self.dd.value))
+            except:
+                val = 0
+        return val
+    
+    @value.setter 
+    def value(self, newval):
+        try:
+            float(newval)
+            self.dd.value = '%.2e' % newval            
+        except:
+            pass;
 
         
 class PNToySimplified (InstanceTracker, Rappturetool):
@@ -94,7 +139,16 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             self.fig.update({'layout':{'template':self.theme}});
 
         
-    def displayOptions(self):        
+    def displayOptions(self):      
+        for opt in ['Na','Nd','taun','taup','impuritylevel']:
+            self.options[opt] = ScientificNumber(
+                value=self.options[opt].value, 
+                name=self.options[opt].name,
+                min=self.options[opt].min,
+                max=self.options[opt].max,
+                units=self.options[opt].units_tex
+            )
+        
         container_structure = VBox(layout=Layout(width='100%', height='100%'))
         children_structure = []
         container_materials = VBox(layout=Layout(width='100%', height='100%'))

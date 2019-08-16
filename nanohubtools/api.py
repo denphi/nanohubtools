@@ -66,7 +66,7 @@ def authenticate(auth_data):
             'grant_type' : 'tool',
         }
         try:
-            with open(os.environ["PWD"]+"/resources") as file:
+            with open(os.environ["SESSIONDIR"]+"/resources") as file:
                 lines = [line.split(" ", 1) for line in file.readlines()]
                 properties = {line[0].strip(): line[1].strip() for line in lines if len(line)==2}
                 auth_data["sessiontoken"] = properties["session_token"]

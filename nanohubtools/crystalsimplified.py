@@ -139,7 +139,8 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
     
     def __init__(self, credentials, **kwargs):
         InstanceTracker.__init__(self)                                  
-        
+        self.rebuild_fig = kwargs.get('rebuild_fig', True)
+                
         self.samples = 20
         self.resize = .15
         self.phi = np.linspace(0, 2*np.pi, self.samples)
@@ -212,7 +213,18 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
     def plotDrawingPlotly(self, draw, out):
         self.loggingMessage("Building Model", out)    
         label = self.getText(draw, ["index", "label"])
-        self.fig.data = []
+        if self.rebuild_fig:
+            self.fig = FigureWidget(
+                data= [],
+                layout= { 
+                    'height' : 600, 
+                    'scene':{'aspectmode':'data'}, 
+                    'margin' : {'l':0,'r':0,'t':0,'b':0},
+                    'template' : self.theme,                
+                }
+            )           
+        else:
+            self.fig.data = []
         traces = []
         molecules = draw.findall('molecule')
         min_p = None
@@ -687,7 +699,7 @@ class CrystalLab (InstanceTracker):
             display(VBox([                
                 self.options_cont,
                 self.output_cont,
-            ], layout=Layout(flexDirection="row", width="100%", height="800px")))
+            ], layout=Layout(flexDirection="row", width="100%", height="750px")))
         self.displayFrame()  
         self.exposedActivateTool(self.current_tool)
         
@@ -699,7 +711,8 @@ class CrystalLab (InstanceTracker):
 
     def buildOptions(self):   
         options_view = '''
-        <style>        
+        <style>
+
             .crystalLabCrystalLogo{
                 background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiBzdGFuZGFsb25lPSJubyI/Pgo8IURPQ1RZUEUgc3ZnIFBVQkxJQyAiLS8vVzNDLy9EVEQgU1ZHIDIwMDEwOTA0Ly9FTiIKICJodHRwOi8vd3d3LnczLm9yZy9UUi8yMDAxL1JFQy1TVkctMjAwMTA5MDQvRFREL3N2ZzEwLmR0ZCI+CjxzdmcgdmVyc2lvbj0iMS4wIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciCiB3aWR0aD0iNjkuMDAwMDAwcHQiIGhlaWdodD0iMTA2LjAwMDAwMHB0IiB2aWV3Qm94PSIwIDAgNjkuMDAwMDAwIDEwNi4wMDAwMDAiCiBwcmVzZXJ2ZUFzcGVjdFJhdGlvPSJ4TWlkWU1pZCBtZWV0Ij4KCjxnIHRyYW5zZm9ybT0idHJhbnNsYXRlKDAuMDAwMDAwLDEwNi4wMDAwMDApIHNjYWxlKDAuMTAwMDAwLC0wLjEwMDAwMCkiCmZpbGw9IiMwMDAwMDAiIHN0cm9rZT0ibm9uZSI+CjxwYXRoIGQ9Ik0yMDYgNzM4IGwtMTk3IC0yOTMgNTcgLTU0IGM1MiAtNDggNTggLTUxIDY3IC0zNSAzMCA1MyAyODcgNjQyIDI4Nwo2NTcgMCA5IC00IDE3IC04IDE3IC01IDAgLTk3IC0xMzIgLTIwNiAtMjkyeiIvPgo8cGF0aCBkPSJNNDUyIDEwMDAgYzQ2IC0xMzggMjE1IC01ODcgMjIwIC01ODQgMyAyIDkgMzggMTMgNzggbDcgNzQgLTExNyAyMTkKYy0xMTMgMjA5IC0xMzQgMjQ2IC0xMjMgMjEzeiIvPgo8cGF0aCBkPSJNNDQxIDYwMyBsLTEgLTM2MyAxMDQgODEgMTA1IDgxIC0xNCAzNiBjLTI0IDcwIC0xNzggNDg3IC0xODYgNTA3Ci00IDExIC04IC0xNDMgLTggLTM0MnoiLz4KPHBhdGggZD0iTTM3NCA4NDAgYy02MSAtMTI3IC0yMjQgLTQ5NiAtMjI0IC01MDggMCAtOSAyNTkgLTEwNiAyNjcgLTk5IDIgMiAyCjE1OSAxIDM0OCBsLTMgMzQ0IC00MSAtODV6Ii8+CjxwYXRoIGQ9Ik00NyAzMTMgYzE5IC01NCA0NSAtMTI1IDU3IC0xNTkgMTQgLTQyIDMzIC03MSA1OSAtOTMgMjAgLTE4IDM3IC0yOQozNyAtMjUgMCA1IC0xNiA2NyAtMzYgMTM5IC0zNSAxMjMgLTM5IDEzMyAtODggMTgzIC0yOCAyOCAtNTQgNTIgLTU4IDUyIC00IDAKOSAtNDQgMjkgLTk3eiIvPgo8cGF0aCBkPSJNNTQwIDI5NiBsLTEwNCAtODQgLTI3IC0xMDYgYy0xNSAtNTggLTI0IC0xMDYgLTIxIC0xMDYgMyAwIDM1IDE0CjcyIDMxIGw2NiAzMCA2MiAxNDMgYzc3IDE3OSA3NiAxNzYgNjYgMTc2IC01IC0xIC01NiAtMzkgLTExNCAtODR6Ii8+CjxwYXRoIGQ9Ik0xNTAgMjk0IGMwIC0xOSA3NSAtMjYxIDg0IC0yNzEgNiAtNiAzOCAtMTQgNzEgLTE4IGw2MCAtNiAyMyAxMDEKYzEzIDU2IDIxIDEwNCAxOSAxMDcgLTUgNSAtMjQ1IDkzIC0yNTMgOTMgLTIgMCAtNCAtMyAtNCAtNnoiLz4KPC9nPgo8L3N2Zz4K");
                 background-size: 25px;
@@ -1117,7 +1130,7 @@ class CrystalViewerSimplified (CrystalSimplified):
                                 "default":"GaN",
                                 "value": "3",
                             },
-                            "Sodium Chloride":{
+                            "Rock Salt (Sodium Chloride)":{
                                 "materials":["NaCl","SmSe"],
                                 "icon": "crystal4",
                                 "default":"NaCl",
@@ -2900,7 +2913,7 @@ class BravaisViewerSimplified (CrystalSimplified):
                     else:
                         interface_js += ", " + parameter
                 interface_js += "){\n";
-                interface_js += "    var command = 'from nanohubtools import CrystalViewerSimplified ; CrystalViewerSimplified.find_instance("+ str(self.ref) + ")." + method[0] +"(";
+                interface_js += "    var command = 'from nanohubtools import BravaisViewerSimplified ; BravaisViewerSimplified.find_instance("+ str(self.ref) + ")." + method[0] +"(";
                 for i, parameter in enumerate (inspect.signature(method[1]).parameters):
                     if (i==0):
                         interface_js += "\\'' + String(" + parameter + ") + '\\'"
