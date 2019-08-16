@@ -10,7 +10,7 @@ import hashlib, json
 import math, os, base64
 import numpy as np
 import uuid, weakref, inspect, time
-
+from datetime import datetime
 
         
 class PNToySimplified (InstanceTracker, Rappturetool):
@@ -46,6 +46,7 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         ]
         self.parameters_additional = [
         ]
+        self.history = {}
         self.current_view = "band"
         self.hashitem = None;
         self.hashtable = {}        
@@ -58,7 +59,7 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         self.fig = FigureWidget(
             data= [],
             layout= { 
-                'height' : 600,                 
+                'height' : 550,                 
                 'margin' : {
                     'b' : 40,
                     't' : 80,
@@ -614,36 +615,52 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             self.cv = curves.get("cap", None)
             self.iv = curves.get("iv", None)
             
+            self.history[hashitem] = {
+                "band": self.band,
+                "current": self.current,
+                "density": self.density,
+                "carrier": self.carrier,
+                "net": self.net,
+                "potential": self.potential,
+                "field": self.field,
+                "recombination": self.recombination,
+                "cv": self.cv,
+                "iv": self.iv,
+                "timestamp" : datetime.now().timestamp(),
+                "parameters" : parameters
+            }            
             
         with self.content_component_output:
             clear_output()  
         self.hashitem = hashitem                    
 
-        
+
+
+
 
     def exposedDisplay(self, option):
         self.getCache()
         self.current_view = option
         if option == "band":
-            self.plotSequence(self.band,self.content_component_output)
+            self.plotSequence("band",[self.hashitem],self.content_component_output)
         elif option == "current":
-            self.plotSequence(self.current,self.content_component_output)
+            self.plotSequence("current",[self.hashitem],self.content_component_output)
         elif option == "density":
-            self.plotSequence(self.density,self.content_component_output)
+            self.plotSequence("density",[self.hashitem],self.content_component_output)
         elif option == "carrier":
-            self.plotSequence(self.carrier,self.content_component_output)
+            self.plotSequence("carrier",[self.hashitem],self.content_component_output)
         elif option == "net":
-            self.plotSequence(self.net,self.content_component_output)
+            self.plotSequence("net",[self.hashitem],self.content_component_output)
         elif option == "potential":
-            self.plotSequence(self.potential,self.content_component_output)
+            self.plotSequence("potential",[self.hashitem],self.content_component_output)
         elif option == "field":
-            self.plotSequence(self.field,self.content_component_output)
+            self.plotSequence("field",[self.hashitem],self.content_component_output)
         elif option == "recombination":
-            self.plotSequence(self.recombination,self.content_component_output)
+            self.plotSequence("recombination",[self.hashitem],self.content_component_output)
         elif option == "cv":
-            self.plotXY([self.cv],self.content_component_output)
+            self.plotXY("cv",[self.hashitem],self.content_component_output)
         elif option == "iv":
-            self.plotXY([self.iv],self.content_component_output)
+            self.plotXY("iv",[self.hashitem],self.content_component_output)
         #self.sl.value = 1
             
     def loadCache(self, parameters, hashitem):
@@ -667,14 +684,14 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                 driver_json = self.generateDriver( {'parameters':parameters } )
                 session_id = self.session.getSession(driver_json)
                 with self.content_component_output:            
-                    print ("new", hashitem, session_id)
+                    print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
                     status = self.session.checkStatus(session_id) 
                     loading = True
                     while loading == True:
                         if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
                             loading = False
                         else:    
-                            print ("Running ", session_id)
+                            print ("waiting results from Nanohub [" + session_id + "]")
                             time.sleep(5);
                             status = self.session.checkStatus(session_id) 
                 xml_text = self.session.getResults(session_id, status['run_file'])
@@ -740,69 +757,128 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             display(IHTML(loading))
             display(IHTML("<div class='lds-facebook'><div></div><div></div><div></div></div><div>" + message + "</div>"))
 
+            
+    def plotXY(self, field, hashlist, out):
+        traces = []
+        ly = {"title":"", 'xaxis':{'type':"","title": ""}, 'yaxis':{'type':"","title": ""}}
+        for hash in hashlist:
+            if (hash in self.history) and field in (self.history[hash]):            
+                tr, ly = self.buildXYPlotly([self.history[hash][field]])
+                if (hash != self.hashitem):
+                    p1 = self.history[self.hashitem]["parameters"].items()
+                    p2 = self.history[hash]["parameters"].items()
+                    value = set([k+":"+v for k,v in p2]) - set([k+":"+v for k,v in p1])
+                    diff = ", ". join(value)
+                    for t in tr:
+                        t['hovertext'] = diff
+                        t['hoverinfo'] = "text+x+y"
+                        t["line"]["color"] = "lightgrey"
+                traces.extend(tr)
+        out.clear_output()   
+        self.fig.data=[]
+        self.fig.update({
+            'data': traces,
+            'layout' : {
+                'title' : ly['title'],
+                'xaxis' : {
+                    'title' : ly['xaxis']['title'],
+                    'type' : ly['xaxis']['type'],
+                    'autorange' : True,
+                },
+                'yaxis' : {
+                    'title' : ly['yaxis']['title'],
+                    'type' : ly['yaxis']['type'],
+                    'autorange' : True,
+                },
+            }, 
+        })   
+        buttons = []
+        if (len(hashlist) == 1 and len(self.history)>1):        
+            bt = Button(description="Compare",layout=Layout(width='auto'))
+            bt.on_click(lambda e, this=self, s=field, o=out: this.showHistory(s,o))
+            buttons.append(bt)
 
-    def plotSequence(self, sequence, out, labels=None):
+        with out:
+            display(VBox([self.fig, HBox(buttons)]))
+
+            
+            
+    def plotSequence(self, sequence, hashlist, out):
         traces = []
         layout = {}
         frames = {}
         options = []
-        elements = sequence.findall('element')
-        label = self.getText(sequence, ["index", "label"])
         min_tr_x = None
         min_tr_y = None
         max_tr_x = None
         max_tr_y = None
-        for seq in elements:
-            curves = seq.findall('curve')
-            oc_children = []
-            groups = {}
-            for i in range(len(curves)):
-                el = curves[i]
-                ab = el.find('about')
-                if ab is not None:
-                    for g  in ab.findall("group"):
-                        if g.text in groups:
-                            groups[g.text].append(el)
-                        else:
-                            groups[g.text] = [el]
-            if(len(groups)>0):
-                index = self.getText(seq, ["index"])
-                options.append(index)
-                tr, lay = self.buildXYPlotly(groups[list(groups.keys())[0]])
-                for t in tr:
-                    try :
-                        if (lay['xaxis']['type'] == "log"):
-                            minx = min(i for i in t['x'] if i > 0)
-                            maxx = max(i for i in t['x'] if i > 0)                        
-                        else:
-                            minx = min(t['x'])
-                            maxx = max(t['x'])
-                        if (min_tr_x ==None or min_tr_x > minx):
-                            min_tr_x = minx
-                        if (max_tr_x ==None or max_tr_x < maxx):
-                            max_tr_x = maxx
-                    except :    
-                        pass
-
-                    try :
-                        if (lay['yaxis']['type'] == "log"):
-                            miny = min(i for i in t['y'] if i > 0)
-                            maxy = max(i for i in t['y'] if i > 0)                        
-                        else:
-                            miny = min(t['y'])
-                            maxy = max(t['y'])
+        for hash in hashlist:
+            if (hash in self.history) and sequence in (self.history[hash]):
+                elements = self.history[hash][sequence].findall('element')
+                label = self.getText(sequence, ["index", "label"])
+                for seq in elements:
+                    curves = seq.findall('curve')
+                    oc_children = []
+                    groups = {}
+                    for i in range(len(curves)):
+                        el = curves[i]
+                        ab = el.find('about')
+                        if ab is not None:
+                            for g  in ab.findall("group"):
+                                if g.text in groups:
+                                    groups[g.text].append(el)
+                                else:
+                                    groups[g.text] = [el]
+                    if(len(groups)>0):
+                        index = self.getText(seq, ["index"])
+                        tr, lay = self.buildXYPlotly(groups[list(groups.keys())[0]])
+                        if (hash != self.hashitem):
+                            p1 = self.history[self.hashitem]["parameters"].items()
+                            p2 = self.history[hash]["parameters"].items()
+                            value = set([k+":"+v for k,v in p2]) - set([k+":"+v for k,v in p1])
+                            diff = ", ". join(value)
+                            for t in tr:
+                                t['hovertext'] = diff
+                                t['hoverinfo'] = "text+x+y"
+                                t["line"]["color"] = "lightgrey"
                             
-                        if (min_tr_y ==None or min_tr_y > miny):
-                            min_tr_y = miny
-                        if (max_tr_y ==None or max_tr_y < maxy):
-                            max_tr_y = maxy
-                    except:
-                        pass
-                if len(traces) == 0:
-                    layout = lay
-                    traces = tr
-                frames[index] = tr
-                
+                        for t in tr:
+                            try :
+                                if (lay['xaxis']['type'] == "log"):
+                                    minx = min(i for i in t['x'] if i > 0)
+                                    maxx = max(i for i in t['x'] if i > 0)                        
+                                else:
+                                    minx = min(t['x'])
+                                    maxx = max(t['x'])
+                                if (min_tr_x ==None or min_tr_x > minx):
+                                    min_tr_x = minx
+                                if (max_tr_x ==None or max_tr_x < maxx):
+                                    max_tr_x = maxx
+                            except :    
+                                pass
+
+                            try :
+                                if (lay['yaxis']['type'] == "log"):
+                                    miny = min(i for i in t['y'] if i > 0)
+                                    maxy = max(i for i in t['y'] if i > 0)                        
+                                else:
+                                    miny = min(t['y'])
+                                    maxy = max(t['y'])
+                                    
+                                if (min_tr_y ==None or min_tr_y > miny):
+                                    min_tr_y = miny
+                                if (max_tr_y ==None or max_tr_y < maxy):
+                                    max_tr_y = maxy
+                            except:
+                                pass
+                        if len(traces) == 0:
+                            layout = lay
+                            traces = tr
+                        if index in frames:
+                            frames[index].extend(tr)
+                        else:
+                            options.append(index)                        
+                            frames[index] = tr
         self.fig.data=[]
 
         if (layout['xaxis']['type'] == "log"):
@@ -846,39 +922,29 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             }, 
         })
 
-
         self.sl = SelectionSlider(options=options, value=options[0], description=label)
         play = Play(interval=500, value=0, min=0, max=len(frames), description=label )
-        self.sl.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: Rappturetool.updateFrame(this, change, f, g, p, sl), "value")
+        buttons = [play]
+        if (len(hashlist) == 1 and len(self.history)>1):        
+            bt = Button(description="Compare",layout=Layout(width='auto'))
+            bt.on_click(lambda e, this=self, s=sequence, o=out: this.showHistory(s,o))
+            buttons.append(bt)
+        self.sl.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: Rappturetool.updateFrame(this, change, f, g, p, s), "value")
         play.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: setattr(self.sl, 'value', list(f.keys())[change['new']]), "value")
         self.sl.layout.width='99%'
-        container = VBox([self.fig,play,self.sl], layout=layout)   
+        if (sequence == "carrier" or sequence == "current"):
+            self.sl.value=self.sl.options[1]
+        container = VBox([self.fig,HBox(buttons),self.sl], layout=layout)
 
         out.clear_output()
         with out:
-            display(container)
+            display(container)            
             
-    def plotXY(self, fields, out, labels=None):
-        traces, layout = self.buildXYPlotly(fields, labels)
-        out.clear_output()   
-        self.fig.data=[]
-        self.fig.update({
-            'data': traces,
-            'layout' : {
-                'title' : layout['title'],
-                'xaxis' : {
-                    'title' : layout['xaxis']['title'],
-                    'type' : layout['xaxis']['type'],
-                    'autorange' : True,
-                },
-                'yaxis' : {
-                    'title' : layout['yaxis']['title'],
-                    'type' : layout['yaxis']['type'],
-                    'autorange' : True,
-                },
-            }, 
-        })        
-        with out:
-            display(self.fig)
-
-            
+    def showHistory(self, sequence, out):
+        hashlist = []
+        for hash in (sorted(self.history, key=lambda hash: self.history[hash]["timestamp"], reverse=True)):
+            hashlist.append(hash)
+        if sequence in ["iv", "cv"]:
+            self.plotXY(sequence, hashlist, out)        
+        else :
+            self.plotSequence(sequence, hashlist, out)
