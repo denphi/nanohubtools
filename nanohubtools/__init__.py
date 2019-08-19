@@ -35,6 +35,8 @@ from .crystalviewer import CrystalViewerMaterial, CrystalViewerBravais, CrystalV
 from .crystalsimplified import CrystalViewerSimplified, CrystalLab, BravaisViewerSimplified
 from .pntoysimplified import PNToySimplified
 from .dftqe import DFTExplorer
+from .kronig_penney import PeriodicPotentialLab
+from .kronigsimplified import PeriodicPotentialLabSimplified
 
 from ._version import __version__, version_info
 
