@@ -1,5 +1,4 @@
 from .rappturetool import Rappturetool
-from .rappturetool import Rappturetool
 from ipywidgets import Text, HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box, Textarea, SelectionSlider, Play
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML                                    
@@ -19,9 +18,6 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
     def __init__(self, credentials, **kwargs):
         InstanceTracker.__init__(self)                                  
         self.parameters_structure = [
-            '_type of Perioodic Potentia', 
-            'pot_type', 
-            'degree', 
         ]
         self.parameters_energy = [
             '_Energy Parameters',
@@ -35,6 +31,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         ]
         self.parameters_well = [    
             '_Well Geometry',
+            'degree',             
             'well_width',
             'a',
             'nodes',
@@ -58,9 +55,10 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             
         ]
         self.parameters_additional = [
+            'pot_type',         
         ]
         self.history = {}
-        self.current_view = "option1"
+        self.current_view = "option7a"
         self.hashitem = None;
         self.hashtable = {}        
         self.ref = id(self)        
@@ -108,26 +106,12 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
 
         
     def displayOptions(self):
-        html = '''
-        <b>The Periodic Potential Lab solves the time independent Schroedinger equation in a 1D spatial potential variation.</b>
-        '''
-    
         
-        container_structure = VBox(layout=Layout(width='100%', height='100%'))
-        children_structure = []
         container_energy = VBox(layout=Layout(width='100%', height='100%'))
         children_energy = []
         container_well = VBox(layout=Layout(width='100%', height='100%'))
-        children_well = []
-        
-        children_structure.append(HTML(value=html))
+        children_well = []    
 
-
-        for p in self.parameters_structure :
-            if p in self.options:            
-                children_structure.append(self.options[p])
-            else:
-                children_structure.append(Button(description=p.replace('_',''),layout=Layout(width='auto'),style=ButtonStyle(button_color='lightblue')))
         for p in self.parameters_energy :
             if p in self.options:            
                 children_energy.append(self.options[p])
@@ -141,26 +125,18 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
 
 
         sqpotentialtab = Tab()
-
-
-        
-        children_energy.append(self.options_but)
-        children_structure.append(self.options_but)
-        children_well.append(self.options_but)
         
         container_energy.children = children_energy
-        container_structure.children = children_structure
         container_well.children = children_well
-        sqpotentialtab.children = [container_structure, container_energy, container_well]
-        sqpotentialtab.set_title(0, "Potential type")
-        sqpotentialtab.set_title(1, "Energy Details")
-        sqpotentialtab.set_title(2, "Well Geometry")
+        sqpotentialtab.children = [container_energy, container_well]
+        sqpotentialtab.set_title(0, "Energy Details")
+        sqpotentialtab.set_title(1, "Well Geometry")
                 
         self.options_cont.children = [sqpotentialtab]
         self.showListOptions(self.options["pot_type"].value, self.options["degree"].value)
         self.options['pot_type'].dd.observe(lambda e, this=self: this.showListOptions(e['new'], int(self.options["degree"].value)), 'value')
         self.options['degree'].dd.observe(lambda e, this=self: this.showListOptions(self.options["pot_type"].value, int(e['new'])), 'value')
-
+        self.options['vmax'].value = 3
         self.default_options = {}
         for ii in self.options.keys():
             self.default_options[ii] = self.options[ii].value
@@ -280,7 +256,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         
         .PeriodicPotentialLabSimplifiedLogo{
             line-height : normal;
-            width : 140px ;
+            width : 160px ;
             height : 140px; 
             font-size : 14px ; 
             display : flex;
@@ -289,13 +265,14 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             text-align : center;
             border-right : 4px solid #FFFFFF;
             color : #707070;
-            background-image: url("");
-            background-size: 75px;
+            background-image: url("data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIj8+Cjxzdmcgd2lkdGg9IjU4MCIgaGVpZ2h0PSI0MDAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6c3ZnPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CiA8ZyBjbGFzcz0ibGF5ZXIiPgogIDx0aXRsZT5MYXllciAxPC90aXRsZT4KICA8bGluZSBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTAiIHgxPSIwIiB4Mj0iNzciIHkxPSIxMzgiIHkyPSIxMzgiLz4KICA8bGluZSBzdHJva2U9IiMwMDAiICBzdHJva2Utd2lkdGg9IjEwIiB4MT0iNzIiIHgyPSI3MiIgeTE9IjEzOCIgeTI9IjQiLz4KICA8bGluZSBzdHJva2U9IiMwMDAiICBzdHJva2Utd2lkdGg9IjEwIiB4MT0iNjciIHgyPSIxMjEiIHkxPSI1IiB5Mj0iNSIvPgogIDxsaW5lIHN0cm9rZT0iIzAwMCIgIHN0cm9rZS13aWR0aD0iMTAiIHgxPSIxMTciIHgyPSIxMTciIHkxPSIxMzgiIHkyPSI0Ii8+CiAgPGxpbmUgc3Ryb2tlPSIjMDAwIiBzdHJva2Utd2lkdGg9IjEwIiB4MT0iMTEyIiB4Mj0iMTg4IiB5MT0iMTM4IiB5Mj0iMTM4Ii8+CiAgPGxpbmUgc3Ryb2tlPSIjMDAwIiAgc3Ryb2tlLXdpZHRoPSIxMCIgeDE9IjE4MyIgeDI9IjE4MyIgeTE9IjEzOCIgeTI9IjQiLz4KICA8bGluZSBzdHJva2U9IiMwMDAiICBzdHJva2Utd2lkdGg9IjEwIiB4MT0iMTc4IiB4Mj0iMjMyIiB5MT0iNSIgeTI9IjUiLz4KICA8bGluZSBzdHJva2U9IiMwMDAiICBzdHJva2Utd2lkdGg9IjEwIiB4MT0iMjI3IiB4Mj0iMjI3IiB5MT0iMTM4IiB5Mj0iNCIvPgogIDxsaW5lIHN0cm9rZT0iIzAwMCIgc3Ryb2tlLXdpZHRoPSIxMCIgeDE9IjIyMiIgeDI9IjI5OSIgeTE9IjEzOCIgeTI9IjEzOCIvPgogIDxsaW5lIHN0cm9rZT0iIzAwMCIgIHN0cm9rZS13aWR0aD0iMTAiIHgxPSIyOTQiIHgyPSIyOTQiIHkxPSIxMzgiIHkyPSI0Ii8+CiAgPGxpbmUgc3Ryb2tlPSIjMDAwIiAgc3Ryb2tlLXdpZHRoPSIxMCIgeDE9IjI4OSIgeDI9IjM0MyIgeTE9IjUiIHkyPSI1Ii8+CiAgPGxpbmUgc3Ryb2tlPSIjMDAwIiAgc3Ryb2tlLXdpZHRoPSIxMCIgeDE9IjMzOCIgeDI9IjMzOCIgeTE9IjEzOCIgeTI9IjQiLz4KICA8bGluZSBzdHJva2U9IiMwMDAiIHN0cm9rZS13aWR0aD0iMTAiIHgxPSIzMzMiIHgyPSI0MTAiIHkxPSIxMzgiIHkyPSIxMzgiLz4KICA8cGF0aCBkPSJtMTE5LDk5YTAuNjMsMC4zNiAwIDAgMCA2MywwIiBmaWxsPSIjMDAwIi8+CiAgPHBhdGggZD0ibTIzMSw5OWEwLjYzLDAuMzYgMCAwIDAgNjMsMCIgZmlsbD0iIzAwMCIvPgogIDxwYXRoIGQ9Im0yNjAsNDhhMC4zNSwwLjM2IDAgMCAwIDM1LDAiIGZpbGw9IiMwMDAiLz4KICA8cGF0aCBkPSJtMjI4LDM0YTAuMzUsMC4zNiAwIDAgMCAzNSwwIiBmaWxsPSIjMDAwIiB0cmFuc2Zvcm09InJvdGF0ZSgtMTgwLCAyNDUuNTMxLCA0My4wMzEyKSIvPgogIDxwYXRoIGQ9Im0xNDcsNDhhMC4zNSwwLjM2IDAgMCAwIDM1LDAiIGZpbGw9IiMwMDAiLz4KICA8cGF0aCBkPSJtMTE1LDM0YTAuMzUsMC4zNiAwIDAgMCAzNSwwIiBmaWxsPSIjMDAwIiB0cmFuc2Zvcm09InJvdGF0ZSgtMTgwLCAxMzIuNzE1LCA0My45NjQ3KSIvPgogPC9nPgo8L3N2Zz4=");
+            background-size: 200px;
             background-repeat: no-repeat;
             background-position-x: 10px;
             background-position-y: 10px;
-            padding-left: 70px;
-            padding-top: 80px;
+            padding-left: 15px;
+            padding-right: 15px;
+            padding-top: 50px;
             font-weight: bold;
         }
 
@@ -399,6 +376,26 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             background-image: ''' + self.buildIcon("potential8.png") + ''';
         }
 
+        .ComponentSettingsOption{
+            height: 35px;
+            width: 150px;
+            border-radius:15px;
+            background-color: #FFFFFF;
+            border:1px solid #707070;  
+            font-size: 15px;
+            color : #707070;
+        }
+
+        .ComponentSettingsOption:hover{
+            background-color: #B6BEFD;
+        }
+
+        .ComponentSettings{
+            padding: 10px;
+            display: flex;
+            align-items: center;
+            flex-direction: column;            
+        }        
         </style>
         <div id="ppotential_header_''' + str(self.ref) + '''"></div>
         '''
@@ -474,6 +471,9 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                     }
 
 
+                    displayOptions(){
+                        PeriodicPotentialLabSimplified_''' + str(self.ref) + '''["exposedDisplayOptions"]();
+                    }
 
                     render(){
                         var children = Array()    
@@ -496,13 +496,16 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                             children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentPotentialSpace"}))
                         }  
                         var mat_children = Array()    
-                        mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"materialsTitle"}, "Materials"))
+                               
+                        mat_children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentSettingsOption", style:style, onClick:function(e){self.displayOptions()}, title:"Settings"}, "Settings"))
+                        var settings = React.createElement("div", {key:Util.create_UUID(), className:"ComponentSettings"}, mat_children)
+
                         
 
                         var potentials = React.createElement("div", {key:Util.create_UUID(), className:"ComponentPotentials"}, children)
-                        var mat_container = React.createElement("div", {key:Util.create_UUID(), className:"", style:{flex:1}}, [potentials])
+                        var mat_container = React.createElement("div", {key:Util.create_UUID(), className:"", style:{flex:1}}, [potentials, settings])
 
-                        var title = React.createElement("div", {key:Util.create_UUID(), className:"PeriodicPotentialLabSimplifiedLogo", style:{}}, "Periodic Potential Lab")
+                        var title = React.createElement("div", {key:Util.create_UUID(), className:"PeriodicPotentialLabSimplifiedLogo", style:{}}, "Periodic Potential Lab (Kronig Penny)")
 
                         var div = React.createElement("div", {key:Util.create_UUID(), className:"", style:{backgroundColor:'#EEEEEE', display:'flex',flexDirection: 'row',}}, [title, mat_container])
 
@@ -633,16 +636,23 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                     let self = this;
                     this.state = { 
                         parameters:{
-                            "option1":{
-                                "alt" : "Energy functional vs Energy",
-                                "label" : "Energy functional",
-                                "action" : function(){ self.displayParameter('option1') },
+                            "option7":{
+                                "alt" : "Eigen Energy and Wave function",
+                                "label" : "Eigen Energy",
+                                "action" : function(){ self.displayParameter('option7a') },
+                                children : {
+                                    "option7a":{
+                                        "alt" : "Eigen Energy and Wave function Min",
+                                        "label" : "Min",
+                                        "action" : function(){ self.displayParameter('option7a') },
+                                    },
+                                    "option7b":{
+                                        "alt" : "Eigen Energy and Wave function Max",
+                                        "label" : "Max",
+                                        "action" : function(){ self.displayParameter('option7b') },
+                                    },
+                                }
                             },
-                            "option2":{
-                                "alt" : "Allowed Bands",
-                                "label" : "Allowed Bands",
-                                "action" : function(){ self.displayParameter('option2') },
-                            },                            
                             "option3":{
                                 "alt" : "Reduced Dispertion Relation",
                                 "label" : "Dispertion Relation",
@@ -653,36 +663,53 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                                 "label" : "Expanded Dispertion",
                                 "action" : function(){ self.displayParameter('option4') },
                             },
-                            "option5":{
-                                "alt" : "Periodic EK compared to Free Electron EK",
-                                "label" : "Periodic EK",
-                                "action" : function(){ self.displayParameter('option5') },
-                            },
                             "option6":{
                                 "alt" : "Reduced EK compared to Eff.mass EK",
                                 "label" : "Reduced EK",
                                 "action" : function(){ self.displayParameter('option6') },
-                            },
-                            "option7":{
-                                "alt" : "Eigen Energy and Wave function",
-                                "label" : "Eigen Energy",
-                                "action" : function(){ self.displayParameter('option7') },
-                            },
-                            "option8":{
-                                "alt" : "Wave function Probability Plot",
-                                "label" : "Wave function ",
-                                "action" : function(){ self.displayParameter('option8') },
                             },
                             "option9":{
                                 "alt" : "1D DOS Plot",
                                 "label" : "Density of States",
                                 "action" : function(){ self.displayParameter('option9') },
                             },
-                            "options":{
-                                "alt" : "Settings",
-                                "label" : "Settings",
-                                "action" : function(){ self.displayOptions() },
+                            "option2":{
+                                "alt" : "Allowed Bands",
+                                "label" : "Allowed Bands",
+                                "action" : function(){ self.displayParameter('option2') },
+                            },                            
+                            "option5":{
+                                "alt" : "Periodic EK compared to Free Electron EK",
+                                "label" : "Periodic EK",
+                                "action" : function(){ self.displayParameter('option5') },
                             },
+                            "option8":{
+                                "alt" : "Wave function Probability Plot",
+                                "label" : "Wave function ",
+                                "action" : function(){ self.displayParameter('option8a') },
+                                children : {
+                                    "option8a":{
+                                        "alt" : "Wave function Probability Plot Min",
+                                        "label" : "Min",
+                                        "action" : function(){ self.displayParameter('option8a') },
+                                    },
+                                    "option8b":{
+                                        "alt" : "Wave function Probability Plot Max",
+                                        "label" : "Max",
+                                        "action" : function(){ self.displayParameter('option8b') },
+                                    },
+                                }
+                            },
+                            "option1":{
+                                "alt" : "Energy functional vs Energy",
+                                "label" : "Energy functional",
+                                "action" : function(){ self.displayParameter('option1') },
+                            },
+                            //"options":{
+                            //    "alt" : "Settings",
+                            //    "label" : "Settings",
+                            //    "action" : function(){ self.displayOptions() },
+                            //},
                             
 
                         }, 
@@ -699,10 +726,6 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                         PeriodicPotentialLabSimplified_''' + str(self.ref) + '''["exposedChangeTheme"]('plotly');
                 }
 
-                displayOptions(){
-                    PeriodicPotentialLabSimplified_''' + str(self.ref) + '''["exposedDisplayOptions"]();
-                }
-
                 displayParameter( parameter ){
                     PeriodicPotentialLabSimplified_''' + str(self.ref) + '''["exposedDisplay"](parameter);
                 }
@@ -714,17 +737,12 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 }
 
 
-                callbackParameter(parameter){
-                   console.log(parameter)
+                callbackParameter(param, parameter){
+                    //console.log(parameter)
+                    this.selectParameter(param)
                     if (parameter.action){
                        parameter.action() 
                     }
-                }
-
-                callParameter(param){
-                    this.selectParameter(param)
-                    var parameter = this.state.parameters[param]
-                    this.callbackParameter(parameter)
                 }
 
                 render(){
@@ -748,12 +766,26 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                     
                     for (let parameter in this.state.parameters) {
                         let parameter_instance = this.state.parameters[parameter]
-                        if (parameter != this.state.selectedParameter){
-                            children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOption", style:style, onClick:function(e){self.callParameter(parameter)}, title:parameter_instance.alt}, parameter_instance.label))
+                        if (this.state.selectedParameter.startsWith(parameter)){
+                            children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOptionSelected", style:style, onClick:function(e){self.callbackParameter(parameter, parameter_instance)}, title:parameter_instance.alt}, parameter_instance.label))
+                            if (parameter_instance.children){                                    
+                                for (let option in parameter_instance.children) {
+                                    if (this.state.selectedParameter == parameter)
+                                        this.state.selectedParameter = option
+                                    children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOptionSpacer"}))
+                                    let option_instance = parameter_instance.children[option]
+                                    if (option == this.state.selectedParameter){
+                                        children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOptionSelected", style:style2, onClick:function(e){self.callbackParameter(option, option_instance)}, title:option_instance.alt}, option_instance.label))
+                                    } else {
+                                        children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOption", style:style2, onClick:function(e){self.callbackParameter(option, option_instance)}, title:option_instance.alt}, option_instance.label))
+                                    }                                
+                                }                                
+                            }                            
                         } else {
-                            children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOptionSelected", style:style, onClick:function(e){self.callParameter(parameter)}, title:parameter_instance.alt}, parameter_instance.label))
+                            children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOption", style:style, onClick:function(e){self.callbackParameter(parameter, parameter_instance)}, title:parameter_instance.alt}, parameter_instance.label))
                         }   
                         children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentOptionSpacer"}))
+
                     }  
 
                     children.push(React.createElement("div", {key:Util.create_UUID(), className:"ComponentTheme"}, [
@@ -810,12 +842,12 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         parameters = {}
         
         for ii in self.options.keys():
-            if self.options[ii].visible:
+            if self.options[ii].visible == 'visible' or self.options[ii].visible == None:
                 pass;
             elif ii in default_list :
-                self.options[ii].value == default_list[ii]
+                self.options[ii].value = default_list[ii]
             else: 
-                self.options[ii].value == self.default_options[ii]
+                self.options[ii].value = self.default_options[ii]
 
         for ii in default_list.keys():
             if ii in self.options:
@@ -846,7 +878,11 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             self.option5 = curves.get("Periodic EK compared to Free Electron EK", None)
             self.option6 = curves.get("Reduced EK compared to Eff.mass EK", None)
             self.option7 = curves.get("Eigen Energy and Wave Function", None)
+            self.option7a = [x for x in self.option7 if "max" not in x.attrib['id']]
+            self.option7b = [x for x in self.option7 if "min" not in x.attrib['id']]
             self.option8 = curves.get("Wave Function Probability Plot", None)
+            self.option8a = [x for x in self.option8 if "max" not in x.attrib['id']]
+            self.option8b = [x for x in self.option8 if "min" not in x.attrib['id']]
             #Above %50 region of wavefunction(min)
             #Above %50 region of wavefunction(max)
             self.option9 = curves.get("1D DOS plot", None)
@@ -859,7 +895,11 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 "option5": self.option5,
                 "option6": self.option6,
                 "option7": self.option7,
+                "option7a": self.option7a,
+                "option7b": self.option7b,
                 "option8": self.option8,
+                "option8a": self.option8a,
+                "option8b": self.option8b,
                 "option9": self.option9,
                 "timestamp" : datetime.now().timestamp(),
                 "parameters" : parameters
@@ -872,8 +912,16 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
     def exposedDisplay(self, option):
         self.getCache()
         self.current_view = option
-        if option in ["option1","option2","option3","option4","option5","option6","option7","option8","option9"]:
+        if option in [
+                "option1","option2","option3","option4",
+                "option5","option6","option7","option8",
+                "option9",
+            ]:
             self.plotXY(option,[self.hashitem],self.content_component_output)
+        elif option in [
+                "option7a","option7b","option8a","option8b"
+            ]:
+            self.plotWave('option3', option,[self.hashitem],self.content_component_output)
             
     def exposedSelectPotential(self, potential):
         if (self.options["pot_type"].value != potential):
@@ -898,31 +946,44 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 self.hashtable[hashitem] = hashitem + ".xml"
                     
             else:                
-                self.loggingMessage("GENERATING CACHE ...." + hashitem, self.content_component_output)                
-                driver_json = self.generateDriver( {'parameters':parameters } )
-                session_id = self.session.getSession(driver_json)
-                with self.content_component_output:            
-                    print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
-                    status = self.session.checkStatus(session_id) 
-                    loading = True
-                    while loading == True:
-                        if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
-                            loading = False
-                        else:    
-                            print ("waiting results from Nanohub [" + session_id + "]")
-                            time.sleep(5);
-                            status = self.session.checkStatus(session_id) 
-                xml_text = self.session.getResults(session_id, status['run_file'])
-                xml = ET.fromstring(xml_text) 
-                status = self.getText(xml, ["output", "status"])
-                if status == "ok":
-                    self.hashtable[hashitem] = hashitem + ".xml"
-                    with open(self.hashtable[hashitem],'wt' ) as f:
-                        f.write(xml_text)
-                else:
+                try:
+                    self.loggingMessage("GENERATING CACHE ...." + hashitem, self.content_component_output)                
+                    driver_json = self.generateDriver( {'parameters':parameters } )
+                    session_id = self.session.getSession(driver_json)
+                    with self.content_component_output:            
+                        print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
+                        status = self.session.checkStatus(session_id) 
+                        loading = True
+                        while loading == True:
+                            if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
+                                loading = False
+                            else:    
+                                print ("waiting results from nanohub [" + session_id + "]")
+                                time.sleep(5);
+                                status = self.session.checkStatus(session_id)
+                    xml_text = self.session.getResults(session_id, status['run_file'])
+                    xml = ET.fromstring(xml_text) 
+                    status = self.getText(xml, ["output", "status"])
+                    if status == "ok":
+                        self.hashtable[hashitem] = hashitem + ".xml"
+                        with open(self.hashtable[hashitem],'wt' ) as f:
+                            f.write(xml_text)
+                    else:
+                        with self.content_component_output:                
+                            clear_output()  
+                            raise("There is a problem with that simulation")   
+
+                except ConnectionError as ce:
                     with self.content_component_output:                
                         clear_output()  
-                        raise("There is a problem with that simulation")                    
+                        print ("Simulation Error")
+                        print (str(ce))
+                        xml = ET.fromstring("<run><output></output></run>") 
+                except : 
+                    with self.content_component_output:                
+                        clear_output()  
+                        print ("There is a problem with that simulation, try again")
+                        xml = ET.fromstring("<run><output></output></run>") 
                 return xml                                
         return ET.fromstring(xml)             
         
@@ -999,15 +1060,86 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             'layout' : {
                 'title' : ly['title'],
                 'xaxis' : {
+                    'domain': [0.0, 1.0],                
                     'title' : ly['xaxis']['title'],
         #            'type' : ly['xaxis']['type'],
-                    'autorange' : True,
+                    'autorange' : ly['xaxis']['autorange'],
+                    'range' : ly['xaxis']['range'],
                 },
                 'yaxis' : {
                     'title' : ly['yaxis']['title'],
         #            'type' : ly['yaxis']['type'],
+                    'autorange' : ly['yaxis']['autorange'],
+                    'range' : ly['yaxis']['range'],
+                },
+            }, 
+        })   
+        buttons = []
+        if (len(hashlist) == 1 and len(self.history)>1):        
+            bt = Button(description="Compare",layout=Layout(width='auto'))
+            bt.on_click(lambda e, this=self, s=field, o=out: this.showHistory(s,o))
+            buttons.append(bt)
+
+        with out:
+            display(VBox([self.fig, HBox(buttons)]))
+
+            
+    def plotWave(self, base, field, hashlist, out):
+        traces = []
+        ly = {"title":"", 'xaxis':{'type':"","title": "", "autorange":False}, 'yaxis':{'type':"","title": "", "autorange":False}}
+        ly2 = {"title":"", 'xaxis':{'type':"","title": "", "autorange":False}, 'yaxis':{'type':"","title": "", "autorange":False}}
+        for hash in hashlist:
+            if (hash in self.history) and field in (self.history[hash]):            
+                tr, ly = self.buildXYPlotly(self.history[hash][field])
+                for t in tr:
+                    t["xaxis"] = "x2"                
+                if (hash != self.hashitem):
+                    p1 = self.history[self.hashitem]["parameters"].items()
+                    p2 = self.history[hash]["parameters"].items()
+                    value = set([k+":"+v for k,v in p2]) - set([k+":"+v for k,v in p1])
+                    diff = ", ". join(value)
+                    for t in tr:
+                        t['hovertext'] = diff
+                        t['hoverinfo'] = "text+x+y"
+                        t["line"]["color"] = "lightgrey"
+                        
+                traces.extend(tr)
+        for hash in hashlist:
+            if (hash in self.history) and base in (self.history[hash]):            
+                tr, ly2 = self.buildXYPlotly(self.history[hash][base])
+                if (hash != self.hashitem):
+                    p1 = self.history[self.hashitem]["parameters"].items()
+                    p2 = self.history[hash]["parameters"].items()
+                    value = set([k+":"+v for k,v in p2]) - set([k+":"+v for k,v in p1])
+                    diff = ", ". join(value)
+                    for t in tr:
+                        t['hovertext'] = diff
+                        t['hoverinfo'] = "text+x+y"
+                        t["line"]["color"] = "lightgrey"
+                traces.extend(tr)
+        out.clear_output()   
+        self.fig.data=[]
+        self.fig.update({
+            'data': traces,
+            'layout' : {
+                'title' : ly['title'],
+                'xaxis' : {
+                    'domain': [0, 0.29],
+                    'title' : ly2['xaxis']['title'],
+                    'autorange' : False,
+                    'range' : [0,1]
+                },
+                'xaxis2' : {
+                    'domain': [0.31, 1.0],
+                    'title' : ly['xaxis']['title'],
+                    'autorange' : ly['xaxis']['autorange'],
+                    #'range' : ly['xaxis']['range'],
+                },
+                'yaxis' : {
+                    'title' : ly2['yaxis']['title'],
                     'autorange' : True,
                 },
+
             }, 
         })   
         buttons = []
@@ -1024,4 +1156,13 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         hashlist = []
         for hash in (sorted(self.history, key=lambda hash: self.history[hash]["timestamp"], reverse=True)):
             hashlist.append(hash)
-        self.plotXY(sequence, hashlist, out)        
+        if sequence in [
+                "option1","option2","option3","option4",
+                "option5","option6","option7","option8",
+                "option9",
+            ]:
+            self.plotXY(sequence, hashlist, out)        
+        elif sequence in [
+                "option7a","option7b","option8a","option8b"
+            ]:
+            self.plotWave('option3', sequence, hashlist, out)

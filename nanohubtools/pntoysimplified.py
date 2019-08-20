@@ -202,12 +202,12 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         parameters = {}
         
         for ii in self.options.keys():
-            if self.options[ii].visible:
+            if self.options[ii].visible == 'visible' or self.options[ii].visible == None:
                 pass;
             elif ii in default_list :
-                self.options[ii].value == default_list[ii]
+                self.options[ii].value = default_list[ii]
             else: 
-                self.options[ii].value == self.default_options[ii]
+                self.options[ii].value = self.default_options[ii]
 
         for ii in default_list.keys():
             if ii in self.options:
@@ -734,31 +734,44 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                 self.hashtable[hashitem] = hashitem + ".xml"
                     
             else:                
-                self.loggingMessage("GENERATING CACHE ...." + hashitem, self.content_component_output)                
-                driver_json = self.generateDriver( {'parameters':parameters } )
-                session_id = self.session.getSession(driver_json)
-                with self.content_component_output:            
-                    print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
-                    status = self.session.checkStatus(session_id) 
-                    loading = True
-                    while loading == True:
-                        if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
-                            loading = False
-                        else:    
-                            print ("waiting results from Nanohub [" + session_id + "]")
-                            time.sleep(5);
-                            status = self.session.checkStatus(session_id) 
-                xml_text = self.session.getResults(session_id, status['run_file'])
-                xml = ET.fromstring(xml_text) 
-                status = self.getText(xml, ["output", "status"])
-                if status == "ok":
-                    self.hashtable[hashitem] = hashitem + ".xml"
-                    with open(self.hashtable[hashitem],'wt' ) as f:
-                        f.write(xml_text)
-                else:
+                try:            
+                    self.loggingMessage("GENERATING CACHE ...." + hashitem, self.content_component_output)                
+                    driver_json = self.generateDriver( {'parameters':parameters } )
+                    session_id = self.session.getSession(driver_json)
+                    with self.content_component_output:            
+                        print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
+                        status = self.session.checkStatus(session_id) 
+                        loading = True
+                        while loading == True:
+                            if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
+                                loading = False
+                            else:    
+                                print ("waiting results from nanohub [" + session_id + "]")
+                                time.sleep(5);
+                                status = self.session.checkStatus(session_id) 
+                    xml_text = self.session.getResults(session_id, status['run_file'])
+                    xml = ET.fromstring(xml_text) 
+                    status = self.getText(xml, ["output", "status"])
+                    if status == "ok":
+                        self.hashtable[hashitem] = hashitem + ".xml"
+                        with open(self.hashtable[hashitem],'wt' ) as f:
+                            f.write(xml_text)
+                    else:
+                        with self.content_component_output:                
+                            clear_output()  
+                            raise("There is a problem with that simulation")
+                except ConnectionError as ce:
                     with self.content_component_output:                
                         clear_output()  
-                        raise("There is a problem with that simulation")                    
+                        print ("Simulation Error")
+                        print (str(ce))
+                        xml = ET.fromstring("<run><output></output></run>") 
+                        
+                except : 
+                    with self.content_component_output:                
+                        clear_output()  
+                        print ("There is a problem with that simulation, try again")
+                        xml = ET.fromstring("<run><output></output></run>")                             
                 return xml                                
         return ET.fromstring(xml)             
         

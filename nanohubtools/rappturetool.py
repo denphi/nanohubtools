@@ -920,6 +920,8 @@ class Rappturetool (Nanohubtool):
 
     def buildXYPlotly(self, fields, labels=None):
         traces = []
+        xrange = [None,None]
+        yrange = [None,None]
         for i, field in enumerate(fields):
             component = self.getXY(field, 'component')
             label = self.getText(field, ["about","label"])
@@ -945,6 +947,34 @@ class Rappturetool (Nanohubtool):
             xaxis = self.getText(field, ["xaxis","label"])
             xunits = self.getText(field, ["xaxis","units"])
             xscale = self.getText(field, ["xaxis","scale"])
+            try:
+                if xrange[0] == None:
+                    xrange[0] = float(self.getText(field, ["xaxis","min"]))
+                else:
+                    xrange[0] = min(xrange[0], float(self.getText(field, ["xaxis","min"])))
+            except:
+                pass;
+            try:
+                if xrange[1] == None:
+                    xrange[1] = float(self.getText(field, ["xaxis","max"]))
+                else:
+                    xrange[1] = max(xrange[1], float(self.getText(field, ["xaxis","max"])))
+            except:
+                pass;
+            try:
+                if yrange[0] == None:
+                    yrange[0] = float(self.getText(field, ["yaxis","min"]))
+                else:
+                    yrange[0] = min(yrange[0], float(self.getText(field, ["yaxis","min"])))
+            except:
+                pass;
+            try:
+                if yrange[1] == None:
+                    yrange[1] = float(self.getText(field, ["yaxis","max"]))
+                else:
+                    yrange[1] = max(yrange[1], float(self.getText(field, ["yaxis","max"])))
+            except:
+                pass;
             if xscale == "":
                 xscale = "linear"
                 yaxis = self.getText(field, ["yaxis","label"])
@@ -976,16 +1006,24 @@ class Rappturetool (Nanohubtool):
                 'title' : xaxis + " [" + xunits + "]",
                 'type' : xscale,
                 'autorange' : True,
+                'range' : [-1,1],
                 'exponentformat' :  "e",
             },
             'yaxis' : {
                 'title' : yaxis + " [" + yunits + "]",
                 'type' : yscale,
                 'autorange' : True,
+                'range' : [-1,1],
                 'exponentformat' : "e"
             },
             'legend' : { 'orientation' : 'h', 'x':0.1, 'y':1.1 },
         }    
+        if xrange[0] != None and xrange[1] != None:
+            layout['xaxis']['autorange'] = False
+            layout['xaxis']['range'] = xrange
+        if yrange[0] != None and yrange[1] != None:
+            layout['yaxis']['autorange'] = False
+            layout['yaxis']['range'] = yrange          
         return traces, layout
                            
                   

@@ -1937,7 +1937,6 @@ class CrystalViewerSimplified (CrystalSimplified):
         parameters = self.getCurrentParameters( { "Primitive_cell" : "no" } )
         hashstr =  json.dumps(parameters, sort_keys=True).encode()        
         hashitem = hashlib.sha1(hashstr).hexdigest()
-        #print (hashitem)
         if self.hashitem != hashitem:
             xml = self.loadCache(parameters, hashitem)
             results = xml.find('output')
@@ -1969,7 +1968,6 @@ class CrystalViewerSimplified (CrystalSimplified):
             parameters = self.getCurrentParameters( { "Primitive_cell" : "yes", 'Nx': '3', 'Ny':'3', 'Nz':'3' } )
             hashstr =  json.dumps(parameters, sort_keys=True).encode()        
             hashitem = hashlib.sha1(hashstr).hexdigest()
-            #print (hashitem)
             xml = self.loadCache(parameters, hashitem)
             results = xml.find('output')
             drawings = self.getDrawings(results.findall('drawing'))  
@@ -2048,14 +2046,14 @@ class CrystalViewerSimplified (CrystalSimplified):
                 driver_json = self.generateDriver( {'parameters':parameters } )
                 session_id = self.session.getSession(driver_json)
                 with self.content_component_output:            
-                    print ("new", hashitem, session_id)
+                    print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
                     status = self.session.checkStatus(session_id) 
                     loading = True
                     while loading == True:
                         if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
                             loading = False
                         else:    
-                            print ("Running ", session_id)
+                            print ("waiting results from nanohub [" + session_id + "]")
                             time.sleep(5);
                             status = self.session.checkStatus(session_id) 
                 xml_text = self.session.getResults(session_id, status['run_file'])
@@ -2079,12 +2077,12 @@ class CrystalViewerSimplified (CrystalSimplified):
         
         for ii in self.options.keys():
             if (ii !="Crystal_structure" and ii != self.options["Crystal_structure"].value):
-                if self.options[ii].visible:
+                if self.options[ii].visible == 'visible' or self.options[ii].visible == None:
                     pass;
                 elif ii in default_list : 
-                    self.options[ii].value == default_list[ii]  
+                    self.options[ii].value = default_list[ii]  
                 else: 
-                    self.options[ii].value == self.default_options[ii]
+                    self.options[ii].value = self.default_options[ii]
 
         for ii in default_list.keys():
             if ii in self.options:
@@ -3079,34 +3077,46 @@ class BravaisViewerSimplified (CrystalSimplified):
                     xml = f.read()
                 self.hashtable[hashitem] = hashitem + ".xml"
                     
-            else:                
-                self.loggingMessage("GENERATING CACHE ...." + hashitem, self.content_component_output)                
-                driver_json = self.generateDriver( {'parameters':parameters } )
-                session_id = self.session.getSession(driver_json)
-                with self.content_component_output:            
-                    print ("new", hashitem, session_id)
-                    status = self.session.checkStatus(session_id) 
-                    loading = True
-                    while loading == True:
-                        if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
-                            loading = False
-                        else:    
-                            print ("Running ", session_id)
-                            time.sleep(5);
-                            status = self.session.checkStatus(session_id) 
-                xml_text = self.session.getResults(session_id, status['run_file'])
-                xml = ET.fromstring(xml_text) 
-                status = self.getText(xml, ["output", "status"])
-                if status == "ok":
-                    self.hashtable[hashitem] = hashitem + ".xml"
-                    with open(self.hashtable[hashitem],'wt' ) as f:
-                        f.write(xml_text)
-                else:
+            else:    
+                try:
+                    self.loggingMessage("GENERATING CACHE ...." + hashitem, self.content_component_output)
+                    driver_json = self.generateDriver( {'parameters':parameters } )
+                    session_id = self.session.getSession(driver_json)
+                    with self.content_component_output:            
+                        print ("Calculating new results ("+  hashitem +") id [" + session_id + "]")
+                        status = self.session.checkStatus(session_id) 
+                        loading = True
+                        while loading == True:
+                            if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
+                                loading = False
+                            else:    
+                                print ("waiting results from nanohub [" + session_id + "]")
+                                time.sleep(5);
+                                status = self.session.checkStatus(session_id) 
+                    xml_text = self.session.getResults(session_id, status['run_file'])
+                    xml = ET.fromstring(xml_text) 
+                    status = self.getText(xml, ["output", "status"])
+                    if status == "ok":
+                        self.hashtable[hashitem] = hashitem + ".xml"
+                        with open(self.hashtable[hashitem],'wt' ) as f:
+                            f.write(xml_text)
+                    else:
+                        with self.content_component_output:                
+                            clear_output()  
+                            raise("There is a problem with that simulation")                    
+                except ConnectionError as ce:
                     with self.content_component_output:                
                         clear_output()  
-                        raise("There is a problem with that simulation")                    
-                return xml                
-                
+                        print ("Simulation Error")
+                        print (str(ce))
+                        xml = ET.fromstring("<run><output></output></run>") 
+                        
+                except : 
+                    with self.content_component_output:                
+                        clear_output()  
+                        print ("There is a problem with that simulation, try again")
+                        xml = ET.fromstring("<run><output></output></run>") 
+                return xml                                
         return ET.fromstring(xml)                    
 
     def getCurrentParameters( self, default_list ):
