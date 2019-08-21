@@ -25,9 +25,10 @@
 
 
 import json
-import numpy as np
 import xml.etree.ElementTree as et
 from .api import launch_tool, get_results
+
+from numpy import zeros as npzeros
 
 # Driver template for the drivergen tool
 template = """<?xml version="1.0"?>
@@ -71,8 +72,8 @@ def extract_results(run_xml, outputs):
             elif el.tag == 'curve':
                 lines = val.split('\n')
                 n = len(lines)
-                x = np.zeros(n)
-                y = np.zeros(n)
+                x = npzeros(n)
+                y = npzeros(n)
                 for i in range(n):
                     words = lines[i].split()
                     x[i] = float(words[0])
@@ -99,8 +100,8 @@ def extract_all_results(run_xml):
         elif el.tag == 'curve':
             lines = val.split('\n')
             n = len(lines)
-            x = np.zeros(n)
-            y = np.zeros(n)
+            x = npzeros(n)
+            y = npzeros(n)
             for i in range(n):
                 words = lines[i].split()
                 x[i] = float(words[0])

@@ -26,13 +26,15 @@
 
 from .api import authenticate, launch_tool, check_status, load_results, load_tool_definition
 from IPython.display import clear_output
-from floatview import Floatview
 from ipywidgets import Output, Tab, ToggleButton, Text, VBox, HBox, Button, Layout, Textarea
-from hublib import ui
+from hublib.ui.formvalue import FormValue, Dropdown, String, Togglebuttons
+from hublib.ui.numvalue import Integer, Number
+from IPython.display import display
+
 import time, threading
 
 from ipywidgets import Textarea
-from  hublib.ui.formvalue import FormValue
+
 class TextArea(FormValue):
     def __init__(self, name, value, **kwargs):
         self.dd = Textarea(value=value.strip())
@@ -52,7 +54,7 @@ class Nanohubtool():
         self.window = None
         self.tab = None
         self.debug = kwargs.get('debug', None)
-        self.modal = kwargs.get('modal', True)
+        self.modal = kwargs.get('modal', False)
         self.only_subsets = kwargs.get('only_subsets', False)
         self.output_cont = VBox(layout=Layout(width = '100%', border='1px solid rgba(0, 0, 0, 0.25)'))
         self.options_cont = VBox(layout=Layout(width='100%', height='100%'))
@@ -84,6 +86,7 @@ class Nanohubtool():
             if (self.modal == True):
                 title = kwargs.get('title', "")
                 mode = kwargs.get('mode', "")
+                from floatview import Floatview                
                 self.window = Floatview(title = title, mode = mode)
                 #if ( hasattr(self.window, 'uid') == False or self.window.uid == ''): #running on non lab environment
                 #    self.modal = False
@@ -157,27 +160,27 @@ class Nanohubtool():
         if (parameter['type'] == "integer"):
             if (parameter['min'] == None) != (parameter['max'] == None):
                 if parameter['min'] == None:
-                    return ui.Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=0, max=parameter['max'])            
+                    return Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=0, max=parameter['max'])            
                 else:
-                    return ui.Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=100000)
+                    return Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=100000)
             else:
-                return ui.Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'])
+                return Integer(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'])
         elif (parameter['type'] == "choice"):
-            return ui.Dropdown(name=parameter['label'], description=parameter['description'], value=parameter['default'], options=parameter['options'])
+            return Dropdown(name=parameter['label'], description=parameter['description'], value=parameter['default'], options=parameter['options'])
         elif (parameter['type'] == "number"):        
             if (parameter['min'] == None) != (parameter['max'] == None):
                 if parameter['min'] == None:
-                    return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=0, max=parameter['max'], units=parameter['units'])
+                    return Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=0, max=parameter['max'], units=parameter['units'])
                 else:
-                    return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=100000, units=parameter['units'])
+                    return Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=100000, units=parameter['units'])
             else:
-                return ui.Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'], units=parameter['units'])
+                return Number(name=parameter['label'], value=parameter['default'], desc=parameter['description'], min=parameter['min'], max=parameter['max'], units=parameter['units'])
         elif (parameter['type'] == "string"):        
-            return ui.String(name=parameter['label'], value=parameter['default'], description=parameter['description'])
+            return String(name=parameter['label'], value=parameter['default'], description=parameter['description'])
         elif (parameter['type'] == "text"):        
             return TextArea(name=parameter['label'], value=parameter['default'], description=parameter['description'])
         elif (parameter['type'] == "boolean"):        
-            return ui.Togglebuttons(name=parameter['label'], value="no", description=parameter['description'], options=['no', 'yes'])
+            return Togglebuttons(name=parameter['label'], value="no", description=parameter['description'], options=['no', 'yes'])
         else:
             return Text(value='',placeholder=parameter['label'],description='',disabled=False)
         

@@ -26,34 +26,45 @@
 from .nanohubtools import Nanohubtool, setInterval
 from .plotlywidget import FigureWidget
 from ipywidgets import Output, Tab, Button, Accordion, GridBox, Layout, ButtonStyle, Label, HBox, VBox, Textarea, SelectionSlider, Play
-import numpy as np
+from numpy import linspace as nplinspace
+from numpy import pi as nppi
+from numpy import sin as npsin
+from numpy import cos as npcos
+from numpy import outer as npouter
+from numpy import ones as npones
+from numpy import array as nparray
+from numpy import meshgrid as npmeshgrid
+from numpy import fromstring as npfromstring
+from numpy import concatenate as npconcatenate
+from numpy import mgrid as npmgrid
+from numpy import random as nprandom
+from numpy import linalg as nplinalg
+from numpy import cross as npcross
 import xml.etree.ElementTree as ET
-from floatview import Floatview
 from threading import Lock
 import math
-
-
 import copy
 from base64 import b64decode, b64encode
 import zlib
+from IPython.display import display
 
 class Rappturetool (Nanohubtool):
 
     samples = 16
     resize = .1
-    phi = np.linspace(0, 2*np.pi, samples)
-    theta = np.linspace(-np.pi/2, np.pi/2, samples)
-    thetat = np.linspace(0,2*np.pi,samples)
-    phit = np.linspace(0,np.pi,samples)
-    xt = np.outer(np.cos(thetat),np.sin(phit)) * 4 * resize
-    yt = np.outer(np.sin(thetat),np.sin(phit)) * 4 * resize
-    zt = np.outer(np.ones(samples),np.cos(phit)) * 4 * resize
-    cosphi = np.cos(phi) * resize
-    sinphi = np.sin(phi) * resize
-    phi, theta=np.meshgrid(phi, theta)
-    x = np.cos(theta) * np.sin(phi)
-    y = np.cos(theta) * np.cos(phi)
-    z = np.sin(theta)
+    phi = nplinspace(0, 2*nppi, samples)
+    theta = nplinspace(-nppi/2, nppi/2, samples)
+    thetat = nplinspace(0,2*nppi,samples)
+    phit = nplinspace(0,nppi,samples)
+    xt = npouter(npcos(thetat),npsin(phit)) * 4 * resize
+    yt = npouter(npsin(thetat),npsin(phit)) * 4 * resize
+    zt = npouter(npones(samples),npcos(phit)) * 4 * resize
+    cosphi = npcos(phi) * resize
+    sinphi = npsin(phi) * resize
+    phi, theta=npmeshgrid(phi, theta)
+    x = npcos(theta) * npsin(phi)
+    y = npcos(theta) * npcos(phi)
+    z = npsin(theta)
     x = x.flatten() * 4 * resize
     y = y.flatten() * 4 * resize
     z = z.flatten() * 4 * resize
@@ -669,6 +680,7 @@ class Rappturetool (Nanohubtool):
         traces = []
         fig = None
         if out == None:
+            from floatview import Floatview            
             out = Floatview(title=title, mode = 'split-bottom')
         out.clear_output()
         with out:
@@ -678,24 +690,22 @@ class Rappturetool (Nanohubtool):
 
             for ii, datavtk in enumerate(component):
             
-                npdata = np.array(datavtk.splitlines())
+                npdata = nparray(datavtk.splitlines())
                 dimensions = npdata[4].split()
                 dimensions = [int(dimensions[v]) for v in range (1,len(dimensions)) ]
                 spacing = npdata[5].split()
                 spacing = [float(spacing[v]) for v in range (1,len(spacing)) ]
                 origin = npdata[6].split()
                 origin = [float(origin[v]) for v in range (1,len(origin)) ]
-                values = [np.fromstring(npdata[i], dtype=float, sep=" ") for i in range(10, len(npdata))]                
-                self.V = np.concatenate(values)
+                values = [npfromstring(npdata[i], dtype=float, sep=" ") for i in range(10, len(npdata))]                
+                self.V = npconcatenate(values)
                 x = 2
                 y = 1
                 z = 0
-                Z,Y,X = np.mgrid[origin[x]:((spacing[x]*dimensions[x])+origin[x]):dimensions[x]*1j, origin[y]:((spacing[y]*dimensions[y])+origin[y]):dimensions[y]*1j, origin[z]:((spacing[z]*dimensions[z])+origin[z]):dimensions[z]*1j]
+                Z,Y,X = npmgrid[origin[x]:((spacing[x]*dimensions[x])+origin[x]):dimensions[x]*1j, origin[y]:((spacing[y]*dimensions[y])+origin[y]):dimensions[y]*1j, origin[z]:((spacing[z]*dimensions[z])+origin[z]):dimensions[z]*1j]
                 self.X = X.flatten().tolist()
                 self.Y = Y.flatten().tolist()
                 self.Z = Z.flatten().tolist()
-                #min_val = np.amin(self.V)
-                #max_val = np.amax(self.V) 
                 ncontours = 20
                 colorscale = "Viridis"
                 showscale = True
@@ -780,6 +790,7 @@ class Rappturetool (Nanohubtool):
         traces = []
         title = self.getText(field, ["about","label"])
         if out == None:
+            from floatview import Floatview            
             out = Floatview(title=title, mode = 'split-bottom')
         out.clear_output()
         with out:
@@ -831,6 +842,7 @@ class Rappturetool (Nanohubtool):
             text = zlib.decompress(text, zlib.MAX_WBITS | 32)
         
         if out == None:
+            from floatview import Floatview            
             out = Floatview(title=title, mode = 'split-bottom')
         out.clear_output()
         with out:            
@@ -893,6 +905,7 @@ class Rappturetool (Nanohubtool):
 
 
         if out == None:
+            from floatview import Floatview            
             out = Floatview(title=label, mode = 'split-bottom')
         out.clear_output()
         with out:
@@ -909,6 +922,7 @@ class Rappturetool (Nanohubtool):
             title = ""
             for field in (fields):
                 title = self.getText(field, ["about","group"])                                                
+            from floatview import Floatview                
             out = Floatview(title=title, mode = 'split-bottom')
         out.clear_output()    
         but = Button(description="Compare Data", icon='check', disable=False, layout=layout)
@@ -984,10 +998,10 @@ class Rappturetool (Nanohubtool):
                 yscale = "linear"
             for obj in component:
                 xy = obj.strip()
-                xy = np.array(xy.splitlines())
+                xy = nparray(xy.splitlines())
                 xy = xy[(xy != '')]
-                xy = [np.fromstring(xy[i].replace("--", ""), dtype=float, sep=" ") for i in range(len(xy))]
-                xy = np.concatenate(xy)
+                xy = [npfromstring(xy[i].replace("--", ""), dtype=float, sep=" ") for i in range(len(xy))]
+                xy = npconcatenate(xy)
                 #xy = xy[0:int(len(xy)/2)*2]
                 xy = xy.reshape(int(len(xy)/2),2)
                 trace1 = {
@@ -1030,6 +1044,7 @@ class Rappturetool (Nanohubtool):
     def plotDrawing(self, draw, out):
         label = self.getText(draw, ["index", "label"])
         if out == None:
+            from floatview import Floatview            
             out = Floatview(title=label, mode = 'split-bottom')
         out.clear_output()     
         layout = { 'height' : 600, 'scene':{'aspectmode':'data'} }
@@ -1101,17 +1116,17 @@ class Rappturetool (Nanohubtool):
                 for atom2 in connection:
                     at1 = atom1
                     at2 = atom2
-                    u = np.array([atoms[at2][i]-atoms[at1][i] for i in range(3)])        
-                    u /= np.linalg.norm(u)
-                    v1 = np.random.randn(3)  # take a random vector
+                    u = nparray([atoms[at2][i]-atoms[at1][i] for i in range(3)])        
+                    u /= nplinalg.norm(u)
+                    v1 = nprandom.randn(3)  # take a random vector
                     v1 -= v1.dot(u) * u       # make it orthogonal to k
-                    v1 /= np.linalg.norm(v1)
-                    v2 = np.cross(v1, u)
-                    v2 /= np.linalg.norm(v2)
+                    v1 /= nplinalg.norm(v1)
+                    v2 = npcross(v1, u)
+                    v2 /= nplinalg.norm(v2)
                     sample = int(Rappturetool.samples/2)
-                    xd = np.linspace(atoms[at2][0], atoms[at1][0], sample)
-                    yd = np.linspace(atoms[at2][1], atoms[at1][1], sample)
-                    zd = np.linspace(atoms[at2][2], atoms[at1][2], sample)
+                    xd = nplinspace(atoms[at2][0], atoms[at1][0], sample)
+                    yd = nplinspace(atoms[at2][1], atoms[at1][1], sample)
+                    zd = nplinspace(atoms[at2][2], atoms[at1][2], sample)
                     for i in range(sample):
                         xt.append((Rappturetool.cosphi*v1[0] + Rappturetool.sinphi*v2[0] + xd[i]).tolist())
                         yt.append((Rappturetool.cosphi*v1[1] + Rappturetool.sinphi*v2[1] + yd[i]).tolist())

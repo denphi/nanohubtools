@@ -2,14 +2,11 @@ from .rappturetool import Rappturetool, __file__
 from ipywidgets import HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML                                    
-from hublib import ui
 from .plotlywidget import FigureWidget       
 import uuid, weakref, inspect, time
 import xml.etree.ElementTree as ET
 import hashlib, json
 import math, os, base64
-import numpy as np
-import pythreejs as pt
 
 class CrystalViewerTool (Rappturetool):
     parameters_miller = [            

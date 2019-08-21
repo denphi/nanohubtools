@@ -1,18 +1,19 @@
 from .rappturetool import Rappturetool
-from ipywidgets import Text, HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box, Textarea, SelectionSlider, Play
+from ipywidgets import HBox, VBox, Layout, Button, ButtonStyle, Tab, Output
 from IPython.display import Javascript, clear_output
-from IPython.display import HTML as IHTML                                    
-from hublib import ui
+from IPython.display import HTML as IHTML      
+from IPython.display import display
 import xml.etree.ElementTree as ET
 from plotly.graph_objs import FigureWidget
 from .crystalsimplified import InstanceTracker
-import hashlib, json
-import math, os, base64
-import numpy as np
-import uuid, weakref, inspect, time
+from hashlib import sha1 
+from json import loads, dumps
+from os import path as ospath
+from base64 import encodebytes
+import inspect
+from time import sleep
 from datetime import datetime
-from  hublib.ui.numvalue import NumValue
-import re
+from hublib.ui.numvalue import NumValue
    
 class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
     def __init__(self, credentials, **kwargs):
@@ -242,13 +243,13 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             ], layout=Layout(flexDirection="row", width="100%", height="750px")))
 
     def buildIcon(self, icon):
-        path = os.path.dirname(__file__)
+        path = ospath.dirname(__file__)
         image_encoded = ""
         with open(path+"/assets/" + icon,'rb' ) as f:
             image_encoded = f.read()                    
-        image = base64.encodebytes(image_encoded).decode("utf-8") 
+        image = encodebytes(image_encoded).decode("utf-8") 
         html = "url(data:image/png;base64," + str(image).replace("\n", "").replace("=", "") +")"
-        return json.loads(json.dumps(html))            
+        return loads(dumps(html))            
              
     def buildHeader(self):   
         header_view = '''
@@ -864,8 +865,8 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         
     def getCache(self):
         parameters = self.getCurrentParameters( )
-        hashstr =  json.dumps(parameters, sort_keys=True).encode()        
-        hashitem = hashlib.sha1(hashstr).hexdigest()
+        hashstr =  dumps(parameters, sort_keys=True).encode()        
+        hashitem = sha1(hashstr).hexdigest()
         if self.hashitem != hashitem:
             xml = self.loadCache(parameters, hashitem)
             self.xml = xml
@@ -937,7 +938,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             with open(self.hashtable[hashitem],'rt' ) as f:
                 xml = f.read()
         else:
-            if os.path.isfile(hashitem + ".xml"):
+            if ospath.isfile(hashitem + ".xml"):
                 self.loggingMessage("LOADING CACHE ...." + hashitem, self.content_component_output)
                 #driver_json = self.generateDriver( {'parameters':parameters } )
                 #session_id = self.session.getSession(driver_json)
@@ -959,7 +960,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                                 loading = False
                             else:    
                                 print ("waiting results from nanohub [" + session_id + "]")
-                                time.sleep(5);
+                                sleep(5);
                                 status = self.session.checkStatus(session_id)
                     xml_text = self.session.getResults(session_id, status['run_file'])
                     xml = ET.fromstring(xml_text) 

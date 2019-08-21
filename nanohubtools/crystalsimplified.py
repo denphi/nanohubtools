@@ -3,14 +3,28 @@ from .crystalviewer import CrystalViewerTool
 from ipywidgets import HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML                                    
-from hublib import ui
 from .plotlywidget import FigureWidget      
 import uuid, weakref, inspect, time
 import xml.etree.ElementTree as ET
 import hashlib, json
 import math, os, base64
-import numpy as np
-import pythreejs as pt
+
+from numpy import linspace as nplinspace
+from numpy import pi as nppi
+from numpy import sin as npsin
+from numpy import cos as npcos
+from numpy import outer as npouter
+from numpy import outer as npones
+from numpy import array as nparray
+from numpy import meshgrid as npmeshgrid
+from numpy import fromstring as npfromstring
+from numpy import concatenate as npconcatenate
+from numpy import mgrid as npmgrid
+from numpy import random as nprandom
+from numpy import linalg as nplinalg
+from numpy import cross as npcross
+from numpy import ceil as npceil
+from numpy import around as nparound
 
 class InstanceTracker(object):
     __instances__ = weakref.WeakValueDictionary()
@@ -143,19 +157,19 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                 
         self.samples = 20
         self.resize = .15
-        self.phi = np.linspace(0, 2*np.pi, self.samples)
-        self.theta = np.linspace(-np.pi/2, np.pi/2, self.samples)
-        self.thetat = np.linspace(0,2*np.pi,self.samples)
-        self.phit = np.linspace(0,np.pi,self.samples)
-        self.xt = np.outer(np.cos(self.thetat),np.sin(self.phit)) * 4 * self.resize
-        self.yt = np.outer(np.sin(self.thetat),np.sin(self.phit)) * 4 * self.resize
-        self.zt = np.outer(np.ones(self.samples),np.cos(self.phit)) * 4 * self.resize
-        self.cosphi = np.cos(self.phi) * self.resize
-        self.sinphi = np.sin(self.phi) * self.resize
-        self.phi, self.theta=np.meshgrid(self.phi, self.theta)
-        self.x = np.cos(self.theta) * np.sin(self.phi)
-        self.y = np.cos(self.theta) * np.cos(self.phi)
-        self.z = np.sin(self.theta)
+        self.phi = nplinspace(0, 2*nppi, self.samples)
+        self.theta = nplinspace(-nppi/2, nppi/2, self.samples)
+        self.thetat = nplinspace(0,2*nppi,self.samples)
+        self.phit = nplinspace(0,nppi,self.samples)
+        self.xt = npouter(npcos(self.thetat),npsin(self.phit)) * 4 * self.resize
+        self.yt = npouter(npsin(self.thetat),npsin(self.phit)) * 4 * self.resize
+        self.zt = npouter(npones(self.samples),npcos(self.phit)) * 4 * self.resize
+        self.cosphi = npcos(self.phi) * self.resize
+        self.sinphi = npsin(self.phi) * self.resize
+        self.phi, self.theta=npmeshgrid(self.phi, self.theta)
+        self.x = npcos(self.theta) * npsin(self.phi)
+        self.y = npcos(self.theta) * npcos(self.phi)
+        self.z = npsin(self.theta)
         self.x = self.x.flatten() * 4 * self.resize
         self.y = self.y.flatten() * 4 * self.resize
         self.z = self.z.flatten() * 4 * self.resize
@@ -315,17 +329,17 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
                 for atom2 in connection:
                     at1 = atom1
                     at2 = atom2
-                    u = np.array([atoms[at2][i]-atoms[at1][i] for i in range(3)])        
-                    u /= np.linalg.norm(u)
-                    v1 = np.random.randn(3)  
+                    u = nparray([atoms[at2][i]-atoms[at1][i] for i in range(3)])        
+                    u /= nplinalg.norm(u)
+                    v1 = nprandom.randn(3)  
                     v1 -= v1.dot(u) * u       
-                    v1 /= np.linalg.norm(v1)
-                    v2 = np.cross(v1, u)
-                    v2 /= np.linalg.norm(v2)
+                    v1 /= nplinalg.norm(v1)
+                    v2 = npcross(v1, u)
+                    v2 /= nplinalg.norm(v2)
                     sample = int(self.samples/2)
-                    xd = np.linspace(atoms[at2][0], atoms[at1][0], sample, endpoint=True)
-                    yd = np.linspace(atoms[at2][1], atoms[at1][1], sample, endpoint=True)
-                    zd = np.linspace(atoms[at2][2], atoms[at1][2], sample, endpoint=True)
+                    xd = nplinspace(atoms[at2][0], atoms[at1][0], sample, endpoint=True)
+                    yd = nplinspace(atoms[at2][1], atoms[at1][1], sample, endpoint=True)
+                    zd = nplinspace(atoms[at2][2], atoms[at1][2], sample, endpoint=True)
                     atm1 = atoms[at1][3]
                     if atm1 == "He":
                         atm1 = atoms[at2][3]
@@ -584,15 +598,15 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         max_point = None
         line_points = set()
         for f in faces:
-            planeNormal = np.array(f[:3])
-            rayDirection = np.array(normal)
+            planeNormal = nparray(f[:3])
+            rayDirection = nparray(normal)
             ndotu = planeNormal.dot(rayDirection)
             if (abs(ndotu)>epsilon):
                 planePoint = [-f[i]*f[3] for i in range(3)]
-                rayPoint = np.array(avg_p)
+                rayPoint = nparray(avg_p)
                 w = rayPoint - planePoint
                 si = -planeNormal.dot(w) / ndotu
-                Psi = np.around(w + si * rayDirection + planePoint, decimals=8)
+                Psi = nparound(w + si * rayDirection + planePoint, decimals=8)
                 if (Psi[0] >= min_p[0]-epsilon and Psi[0] <= max_p[0]+epsilon):
                     if (Psi[1] >= min_p[1]-epsilon and Psi[1] <= max_p[1]+epsilon):
                         if (Psi[2] >= min_p[2]-epsilon and Psi[2] <= max_p[2]+epsilon):
@@ -611,24 +625,24 @@ class CrystalSimplified (InstanceTracker, CrystalViewerTool):
         points = []
         
         for b in faces:
-            a_vec, b_vec = np.array(normal), np.array(b[:3])
-            aXb_vec = np.cross(a_vec, b_vec)
-            A = np.array([a_vec, b_vec, aXb_vec])
-            if np.linalg.det(A) != 0:
-                d = np.array([normal_point, -b[3], 0.]).reshape(3,1)
-                p_inter = np.linalg.solve(A, d).T            
+            a_vec, b_vec = nparray(normal), nparray(b[:3])
+            aXb_vec = npcross(a_vec, b_vec)
+            A = nparray([a_vec, b_vec, aXb_vec])
+            if nplinalg.det(A) != 0:
+                d = nparray([normal_point, -b[3], 0.]).reshape(3,1)
+                p_inter = nplinalg.solve(A, d).T            
                 points.append((tuple(p_inter[0].tolist()), aXb_vec))
 
         pts = set()
         for pt in points:
-            p, v = np.array(pt[0]), np.array(pt[1])
+            p, v = nparray(pt[0]), nparray(pt[1])
             for f in faces:
-                planeNormal = np.array(f[:3])
+                planeNormal = nparray(f[:3])
                 rayDirection = v
                 ndotu = planeNormal.dot(rayDirection)
                 if (abs(ndotu)>epsilon):
                     planePoint = [-f[i]*f[3] for i in range(3)]
-                    rayPoint = np.array(p)
+                    rayPoint = nparray(p)
                     w = rayPoint - planePoint
                     si = -planeNormal.dot(w) / ndotu
                     Psi = w + si * rayDirection + planePoint
@@ -1952,13 +1966,13 @@ class CrystalViewerSimplified (CrystalSimplified):
             polys = self.getPolygons(self.lattice);
             vbasis = []
             for points in polys:
-                p1 = np.array(points[0])
-                p2 = np.array(points[1])
-                p3 = np.array(points[2])
+                p1 = nparray(points[0])
+                p2 = nparray(points[1])
+                p3 = nparray(points[2])
                 v1 = p2 - p1
                 v2 = p2 - p3
-                cp = np.cross(v1, v2)
-                cp = np.ceil(cp / (cp**2).sum()**0.5)
+                cp = npcross(v1, v2)
+                cp = npceil(cp / (cp**2).sum()**0.5)
                 vbasis.append(cp)
                 if len(vbasis) == 3:
                     break;

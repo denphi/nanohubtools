@@ -1,8 +1,6 @@
 from .rappturetool import Rappturetool
 from ipywidgets import HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Dropdown 
 from .nanohubtools import TextArea
-from hublib import ui
-
 from .plotlywidget import FigureWidget
 import math
 

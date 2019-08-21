@@ -2,13 +2,11 @@ from .rappturetool import Rappturetool
 from ipywidgets import Text, HBox, VBox, HTML, Image, Layout, Button, ButtonStyle, Tab, Output, Box, Textarea, SelectionSlider, Play
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML                                    
-from hublib import ui
 import xml.etree.ElementTree as ET
 from plotly.graph_objs import FigureWidget
 from .crystalsimplified import InstanceTracker
 import hashlib, json
 import math, os, base64
-import numpy as np
 import uuid, weakref, inspect, time
 from datetime import datetime
 from  hublib.ui.numvalue import NumValue

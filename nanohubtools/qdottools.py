@@ -26,7 +26,7 @@
 
 from .rappturetool import Rappturetool
 from ipywidgets import  Tab, Button, Layout, ButtonStyle, VBox, HTML, Image
-from hublib import ui
+from hublib.ui.formvalue import String
 
 class Qdotexplorer (Rappturetool):
                                                 
@@ -202,7 +202,7 @@ class StackedQuantumDot (Qdotexplorer):
         parameters = self.parameters_structure + self.parameters_optical + self.parameters_layer + self.parameters_additional
         kwargs.setdefault('title', 'Stacked Quantumdot lab')                                                            
         Qdotexplorer.__init__(self, credentials, parameters, extract_method="id", **kwargs)        
-        self.options[self.parameters_additional[0]] = ui.String(name='Quantum Dot Structure', value='Multi-Layer Quantum Dot', description='Quantum Dot Structure')
+        self.options[self.parameters_additional[0]] = String(name='Quantum Dot Structure', value='Multi-Layer Quantum Dot', description='Quantum Dot Structure')
         
     def displayOptions(self):
         html = '''

@@ -26,8 +26,10 @@ Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 """
 
 
-import plotly
-class FigureWidget (plotly.graph_objs.FigureWidget):
+from plotly.basewidget import BaseFigureWidget as PlotlyWidget
+from plotly.offline import offline
+
+class FigureWidget (PlotlyWidget):
     def __init__(
         self,
         data=None,
@@ -43,13 +45,13 @@ class FigureWidget (plotly.graph_objs.FigureWidget):
             'displaylogo' : False
         }
         config = kwargs.get('config', default_config);
-        old_get_jconfig = plotly.offline.offline._get_jconfig
+        old_get_jconfig = offline._get_jconfig
         _config = old_get_jconfig( config )
-        plotly.offline.offline._get_jconfig = lambda config = None : _config
+        offline._get_jconfig = lambda config = None : _config
         super(FigureWidget, self).__init__(data, layout, frames, skip_invalid)
-        plotly.offline.offline._get_jconfig = old_get_jconfig
+        offline._get_jconfig = old_get_jconfig
 
-class SimplifiedFigureWidget (plotly.graph_objs.FigureWidget):
+class SimplifiedFigureWidget (PlotlyWidget):
     def __init__(
         self,
         data=None,
@@ -65,8 +67,8 @@ class SimplifiedFigureWidget (plotly.graph_objs.FigureWidget):
             'showSendToCloud' : True,
         }
         config = kwargs.get('config', default_config);
-        old_get_jconfig = plotly.offline.offline._get_jconfig
+        old_get_jconfig = offline._get_jconfig
         _config = old_get_jconfig( config )
-        plotly.offline.offline._get_jconfig = lambda config = None : _config
+        offline._get_jconfig = lambda config = None : _config
         super(SimplifiedFigureWidget, self).__init__(data, layout, frames, skip_invalid)
-        plotly.offline.offline._get_jconfig = old_get_jconfig
+        offline._get_jconfig = old_get_jconfig
