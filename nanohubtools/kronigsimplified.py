@@ -1,5 +1,5 @@
 from .rappturetool import Rappturetool
-from ipywidgets import HBox, VBox, Layout, Button, ButtonStyle, Tab, Output
+from ipywidgets import HBox, VBox, Layout, Button, ButtonStyle, Tab, Output, Image
 from IPython.display import Javascript, clear_output
 from IPython.display import HTML as IHTML      
 from IPython.display import display
@@ -13,7 +13,7 @@ from base64 import encodebytes
 import inspect
 from time import sleep
 from datetime import datetime
-from hublib.ui.numvalue import NumValue
+from hublib.ui.numvalue import NumValue, Number
    
 class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
     def __init__(self, credentials, **kwargs):
@@ -59,7 +59,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             'pot_type',         
         ]
         self.history = {}
-        self.current_view = "option7a"
+        self.current_view = "option8a"
         self.hashitem = None;
         self.hashtable = {}        
         self.ref = id(self)        
@@ -107,7 +107,22 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
 
         
     def displayOptions(self):
+        self.options['c_gaus'] = Number(
+            value=self.options['c_gaus'].value, 
+            name="Standard deviation of Gaussian measured in distance (c)",
+            min=self.options['c_gaus'].min,
+            max=self.options['c_gaus'].max,
+            units="angstrom"
+        )
         
+        self.options['b_expo'] = Number(
+            value=self.options['b_expo'].value, 
+            name="Inverse of the potential decay length (b)",
+            min=self.options['b_expo'].min,
+            max=self.options['b_expo'].max,
+            units="1/angstrom"
+        )        
+            
         container_energy = VBox(layout=Layout(width='100%', height='100%'))
         children_energy = []
         container_well = VBox(layout=Layout(width='100%', height='100%'))
@@ -125,42 +140,77 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 children_well.append(Button(description=p.replace('_',''),layout=Layout(width='auto'),style=ButtonStyle(button_color='lightblue')))
 
 
-        sqpotentialtab = Tab()
+        sqpotentialtab = Tab([], layout=Layout(flex="1"))
         
         container_energy.children = children_energy
         container_well.children = children_well
         sqpotentialtab.children = [container_energy, container_well]
         sqpotentialtab.set_title(0, "Energy Details")
         sqpotentialtab.set_title(1, "Well Geometry")
-                
-        self.options_cont.children = [sqpotentialtab]
+
+        self.options['vmax'].value = 3
+        self.options['c_gaus'].value = 6
+        self.options['gaus_shift'].value = 50
+        self.options['exp_shift'].value = 50
+        self.options['b_expo'].value = 0.16
+
+        self.default_options = {}
+        for ii in self.options.keys():
+            self.default_options[ii] = self.options[ii].value        
+        
+        desc_container = VBox([], layout=Layout(width="300px"))
+        list_images = []
+        for descname in [
+            "pot_desc1",
+            "pot_desc2",
+            "pot_desc3",
+            "pot_desc4",
+            "pot_desc5",
+            "pot_desc6",
+            "pot_desc7",
+            "pot_desc8",
+            "pot_desc9",
+            "pot_desc10",
+            "pot_desc11",
+        ]:
+            path = ospath.dirname(__file__)
+            image_encoded = ""
+            with open(path+"/assets/" + descname + ".png",'rb') as f:
+                self.options[descname] = Image(
+                    value=f.read(),
+                    format='png',
+                    width=300,
+                )
+                list_images.append(self.options[descname])
+                self.options[descname].layout.display = 'none'
+                self.options[descname].visible = None
+                      
+        desc_container.children = list_images
+        self.options_cont.children = [HBox([sqpotentialtab, desc_container])]
+        
         self.showListOptions(self.options["pot_type"].value, self.options["degree"].value)
         self.options['pot_type'].dd.observe(lambda e, this=self: this.showListOptions(e['new'], int(self.options["degree"].value)), 'value')
         self.options['degree'].dd.observe(lambda e, this=self: this.showListOptions(self.options["pot_type"].value, int(e['new'])), 'value')
-        self.options['vmax'].value = 3
-        self.default_options = {}
-        for ii in self.options.keys():
-            self.default_options[ii] = self.options[ii].value
-        
         self.getCache()
         self.refreshView()
         
     def showListOptions (self, type, degree):
     
         listoptions = {}
-        listoptions["KP"] = ['vmax', 'vmin', 'emax', 'well_width', 'a', 'mass']
-        listoptions["Tri"] = ['vmax', 'vmin', 'emax', 'well_width', 'a', 'mass']
-        listoptions["para"] = ['vmax', 'vmin', 'emax', 'well_width', 'mass']
-        listoptions["Sine"] = ['vmax', 'vmin', 'emax', 'well_width', 'nodes', 'mass']
-        listoptions["gaus"] = ['vmax', 'vmin', 'emax', 'well_width', 'mass', 'c_gaus', 'gaus_shift']
-        listoptions["expo"] = ['vmax', 'vmin', 'emax', 'well_width', 'mass', 'b_expo', 'exp_shift']
+        listoptions["KP"] = ['vmax', 'vmin', 'emax', 'well_width', 'a', 'mass', 'pot_desc1']
+        listoptions["Tri"] = ['vmax', 'vmin', 'emax', 'well_width', 'a', 'mass', 'pot_desc3']
+        listoptions["para"] = ['vmax', 'vmin', 'emax', 'well_width', 'mass', 'pot_desc4']
+        listoptions["Sine"] = ['vmax', 'vmin', 'emax', 'well_width', 'nodes', 'mass', 'pot_desc2']
+        listoptions["gaus"] = ['vmax', 'vmin', 'emax', 'well_width', 'mass', 'c_gaus', 'gaus_shift', 'pot_desc7']
+        listoptions["expo"] = ['vmax', 'vmin', 'emax', 'well_width', 'mass', 'b_expo', 'exp_shift', 'pot_desc6']
         listoptions["poly"] = ['degree', 'vmax', 'vmin', 'emax', 'well_width', 'mass']
-        listoptions["cola"] = ['vdepth', 'emin_c', 'emax_c', 'well_width', 'a', 'mass']
+        listoptions["cola"] = ['vdepth', 'emin_c', 'emax_c', 'well_width', 'a', 'mass', 'pot_desc5']
 
         listdegree = {}
-        listdegree[2] = ["a_poly2","b_poly2","poly2_shift"]
-        listdegree[3] = ["a_poly3","b_poly3","c_poly3","poly3_shift"]
-        listdegree[4] = ["a_poly4","b_poly4","c_poly4","d_poly4","poly4_shift"]
+        listdegree[1] = ['pot_desc8']
+        listdegree[2] = ["a_poly2","b_poly2","poly2_shift",'pot_desc9']
+        listdegree[3] = ["a_poly3","b_poly3","c_poly3","poly3_shift",'pot_desc10']
+        listdegree[4] = ["a_poly4","b_poly4","c_poly4","d_poly4","poly4_shift",'pot_desc11']
         
         parameters = [
             'vmax', 'vmin', 'emax', 'well_width', 'a', 'mass', 
@@ -171,7 +221,9 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             'vdepth', 'emin_c', 'emax_c',
             "a_poly2","b_poly2","poly2_shift",
             "a_poly3","b_poly3","c_poly3","poly3_shift",
-            "a_poly4","b_poly4","c_poly4","d_poly4","poly4_shift"
+            "a_poly4","b_poly4","c_poly4","d_poly4","poly4_shift",
+            "pot_desc1","pot_desc2","pot_desc3","pot_desc4","pot_desc5","pot_desc6",
+            "pot_desc7","pot_desc8","pot_desc9","pot_desc10","pot_desc11"
         ]
         for opt in parameters:
             visible = False
@@ -443,7 +495,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                                     "icon": "potential2",
                                     "label": "Parabolic Potential",
                                 },
-                                "gaus":{
+                                "cola":{
                                     "icon": "potential5",
                                     "label": "Coulombic Potential",
                                 },
@@ -451,7 +503,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                                     "icon": "potential6",
                                     "label": "Exponential Potential",
                                 },
-                                "cola":{
+                                "gaus":{
                                     "icon": "potential7",
                                     "label": "Gaussian Potential",
                                 },
@@ -527,7 +579,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         parameter_component_view = '''
         <style>
             .ComponentOptionSelected, .ComponentOption{
-                height: 35px;
+                height: 40px;
                 width: 150px;
                 border-radius:15px;
                 background-color: #FFFFFF;
@@ -637,56 +689,9 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                     let self = this;
                     this.state = { 
                         parameters:{
-                            "option7":{
-                                "alt" : "Eigen Energy and Wave function",
-                                "label" : "Eigen Energy",
-                                "action" : function(){ self.displayParameter('option7a') },
-                                children : {
-                                    "option7a":{
-                                        "alt" : "Eigen Energy and Wave function Min",
-                                        "label" : "Min",
-                                        "action" : function(){ self.displayParameter('option7a') },
-                                    },
-                                    "option7b":{
-                                        "alt" : "Eigen Energy and Wave function Max",
-                                        "label" : "Max",
-                                        "action" : function(){ self.displayParameter('option7b') },
-                                    },
-                                }
-                            },
-                            "option3":{
-                                "alt" : "Reduced Dispertion Relation",
-                                "label" : "Dispertion Relation",
-                                "action" : function(){ self.displayParameter('option3') },
-                            },
-                            "option4":{
-                                "alt" : "Expanded Dispertion Relation",
-                                "label" : "Expanded Dispertion",
-                                "action" : function(){ self.displayParameter('option4') },
-                            },
-                            "option6":{
-                                "alt" : "Reduced EK compared to Eff.mass EK",
-                                "label" : "Reduced EK",
-                                "action" : function(){ self.displayParameter('option6') },
-                            },
-                            "option9":{
-                                "alt" : "1D DOS Plot",
-                                "label" : "Density of States",
-                                "action" : function(){ self.displayParameter('option9') },
-                            },
-                            "option2":{
-                                "alt" : "Allowed Bands",
-                                "label" : "Allowed Bands",
-                                "action" : function(){ self.displayParameter('option2') },
-                            },                            
-                            "option5":{
-                                "alt" : "Periodic EK compared to Free Electron EK",
-                                "label" : "Periodic EK",
-                                "action" : function(){ self.displayParameter('option5') },
-                            },
                             "option8":{
                                 "alt" : "Wave function Probability Plot",
-                                "label" : "Wave function ",
+                                "label" : "Dispersion & Wavefunction",
                                 "action" : function(){ self.displayParameter('option8a') },
                                 children : {
                                     "option8a":{
@@ -701,6 +706,53 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                                     },
                                 }
                             },
+                            //"option7":{
+                            //    "alt" : "Eigen Energy and Wave function",
+                            //    "label" : "Eigen Energy",
+                            //    "action" : function(){ self.displayParameter('option7a') },
+                            //    children : {
+                            //        "option7a":{
+                            //            "alt" : "Eigen Energy and Wave function Min",
+                            //            "label" : "Min",
+                            //            "action" : function(){ self.displayParameter('option7a') },
+                            //        },
+                            //        "option7b":{
+                            //            "alt" : "Eigen Energy and Wave function Max",
+                            //            "label" : "Max",
+                            //            "action" : function(){ self.displayParameter('option7b') },
+                            //       },
+                            //    }
+                            //},
+                            "option3":{
+                                "alt" : "Reduced Dispertion Relation",
+                                "label" : "Reduced Dispertion",
+                                "action" : function(){ self.displayParameter('option3') },
+                            },
+                            "option4":{
+                                "alt" : "Expanded Dispertion Relation",
+                                "label" : "Expanded Dispertion",
+                                "action" : function(){ self.displayParameter('option4') },
+                            },
+                            "option6":{
+                                "alt" : "Reduced EK compared to Eff.mass EK",
+                                "label" : "Reduced Dispersion with Eff. Masses",
+                                "action" : function(){ self.displayParameter('option6') },
+                            },
+                            "option9":{
+                                "alt" : "1D DOS Plot",
+                                "label" : "Density of States",
+                                "action" : function(){ self.displayParameter('option9') },
+                            },
+                            "option5":{
+                                "alt" : "Periodic EK compared to Free Electron EK",
+                                "label" : "Expanded Dispersion vs Free Dispersion",
+                                "action" : function(){ self.displayParameter('option5') },
+                            },
+                            "option2":{
+                                "alt" : "Allowed Bands",
+                                "label" : "Allowed Bands",
+                                "action" : function(){ self.displayParameter('option2') },
+                            },                            
                             "option1":{
                                 "alt" : "Energy functional vs Energy",
                                 "label" : "Energy functional",
@@ -753,6 +805,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                         alignItems: "center",
                         flexDirection: "row",
                         justifyContent: "center",
+                        textAlign: "center",
                     }       
 
                     var style2 = {
@@ -761,6 +814,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                         alignItems: "center",
                         flexDirection: "row",
                         justifyContent: "center",
+                        textAlign: "center",
                     }    
       
                     let self = this
@@ -847,7 +901,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 pass;
             elif ii in default_list :
                 self.options[ii].value = default_list[ii]
-            else: 
+            elif ii in self.default_options: 
                 self.options[ii].value = self.default_options[ii]
 
         for ii in default_list.keys():
@@ -855,10 +909,11 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 self.options[ii].value = default_list[ii]
         
         for key, val in self.options.items():
-            units = ''
-            if key in self.parameters and self.parameters[key]['units'] is not None:
-                units = str(self.parameters[key]['units'])
-            parameters[key] = str(val.value) + units
+            if (hasattr(val, "format") == False):
+                units = ''
+                if key in self.parameters and self.parameters[key]['units'] is not None:
+                    units = str(self.parameters[key]['units'])
+                parameters[key] = str(val.value) + units
         return parameters;
 
 
@@ -884,6 +939,11 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             self.option8 = curves.get("Wave Function Probability Plot", None)
             self.option8a = [x for x in self.option8 if "max" not in x.attrib['id']]
             self.option8b = [x for x in self.option8 if "min" not in x.attrib['id']]
+            for curve in self.option7:
+                if curve.attrib['id'].startswith("eig_energy_max"):
+                    self.option8b.append(curve)
+                elif curve.attrib['id'].startswith("eig_energy_min"):
+                    self.option8a.append(curve)
             #Above %50 region of wavefunction(min)
             #Above %50 region of wavefunction(max)
             self.option9 = curves.get("1D DOS plot", None)
@@ -927,6 +987,10 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
     def exposedSelectPotential(self, potential):
         if (self.options["pot_type"].value != potential):
             self.options["pot_type"].value = potential;
+            if potential == "cola": #TODO, this is hack-ish should be a different parameter
+                self.options["a"].value = 0.2
+            else:
+                self.options["a"].value = self.default_options["a"]
             self.getCache()
             self.refreshView()
             
@@ -959,7 +1023,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                             if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
                                 loading = False
                             else:    
-                                print ("waiting results from nanohub [" + session_id + "]")
+                                print ("waiting results from nanoHUB [" + session_id + "]")
                                 sleep(5);
                                 status = self.session.checkStatus(session_id)
                     xml_text = self.session.getResults(session_id, status['run_file'])
@@ -1040,7 +1104,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             
     def plotXY(self, field, hashlist, out):
         traces = []
-        ly = {"title":"", 'xaxis':{'type':"","title": ""}, 'yaxis':{'type':"","title": ""}}
+        ly = {"title":"", 'xaxis':{'type':"linear","title": ""}, 'yaxis':{'type':"linear","title": ""}}
         for hash in hashlist:
             if (hash in self.history) and field in (self.history[hash]):            
                 tr, ly = self.buildXYPlotly(self.history[hash][field])
@@ -1056,6 +1120,9 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 traces.extend(tr)
         out.clear_output()   
         self.fig.data=[]
+        if field == "option9":
+            ly['xaxis']['type'] = "log"
+            
         self.fig.update({
             'data': traces,
             'layout' : {
@@ -1063,13 +1130,13 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 'xaxis' : {
                     'domain': [0.0, 1.0],                
                     'title' : ly['xaxis']['title'],
-        #            'type' : ly['xaxis']['type'],
+                    'type' : ly['xaxis']['type'],
                     'autorange' : ly['xaxis']['autorange'],
                     'range' : ly['xaxis']['range'],
                 },
                 'yaxis' : {
                     'title' : ly['yaxis']['title'],
-        #            'type' : ly['yaxis']['type'],
+                    'type' : ly['yaxis']['type'],
                     'autorange' : ly['yaxis']['autorange'],
                     'range' : ly['yaxis']['range'],
                 },
@@ -1079,6 +1146,10 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         if (len(hashlist) == 1 and len(self.history)>1):        
             bt = Button(description="Compare",layout=Layout(width='auto'))
             bt.on_click(lambda e, this=self, s=field, o=out: this.showHistory(s,o))
+            buttons.append(bt)
+        elif (len(self.history)>1):
+            bt = Button(description="Clear History",layout=Layout(width='auto'))
+            bt.on_click(lambda e, this=self, s=field, o=out: this.clearHistory(s,o))
             buttons.append(bt)
 
         with out:
@@ -1148,6 +1219,10 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             bt = Button(description="Compare",layout=Layout(width='auto'))
             bt.on_click(lambda e, this=self, s=field, o=out: this.showHistory(s,o))
             buttons.append(bt)
+        elif (len(self.history)>1):
+            bt = Button(description="Clear History",layout=Layout(width='auto'))
+            bt.on_click(lambda e, this=self, s=field, o=out: this.clearHistory(s,o))
+            buttons.append(bt)            
 
         with out:
             display(VBox([self.fig, HBox(buttons)]))
@@ -1167,3 +1242,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 "option7a","option7b","option8a","option8b"
             ]:
             self.plotWave('option3', sequence, hashlist, out)
+            
+    def clearHistory(self, sequence, out):
+        self.history = {k: v for k, v in self.history.items() if k == self.hashitem}
+        self.showHistory(sequence, out)

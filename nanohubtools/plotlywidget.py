@@ -26,6 +26,7 @@ Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 """
 
 
+from _plotly_future_ import remove_deprecations
 from plotly.basewidget import BaseFigureWidget as PlotlyWidget
 from plotly.offline import offline
 

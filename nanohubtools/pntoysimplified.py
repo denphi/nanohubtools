@@ -744,7 +744,7 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                             if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
                                 loading = False
                             else:    
-                                print ("waiting results from nanohub [" + session_id + "]")
+                                print ("waiting results from nanoHUB [" + session_id + "]")
                                 time.sleep(5);
                                 status = self.session.checkStatus(session_id) 
                     xml_text = self.session.getResults(session_id, status['run_file'])
@@ -862,7 +862,11 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             bt = Button(description="Compare",layout=Layout(width='auto'))
             bt.on_click(lambda e, this=self, s=field, o=out: this.showHistory(s,o))
             buttons.append(bt)
-
+        elif (len(self.history)>1):
+            bt = Button(description="Clear History",layout=Layout(width='auto'))
+            bt.on_click(lambda e, this=self, s=field, o=out: this.clearHistory(s,o))
+            buttons.append(bt)      
+            
         with out:
             display(VBox([self.fig, HBox(buttons)]))
 
@@ -990,10 +994,15 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         self.sl = SelectionSlider(options=options, value=options[0], description=label)
         play = Play(interval=500, value=0, min=0, max=len(frames), description=label )
         buttons = [play]
+        
         if (len(hashlist) == 1 and len(self.history)>1):        
             bt = Button(description="Compare",layout=Layout(width='auto'))
             bt.on_click(lambda e, this=self, s=sequence, o=out: this.showHistory(s,o))
             buttons.append(bt)
+        elif (len(self.history)>1):
+            bt2 = Button(description="Clear History",layout=Layout(width='auto'))
+            bt2.on_click(lambda e, this=self, s=sequence, o=out: this.clearHistory(s,o))
+            buttons.append(bt2)
         self.sl.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: Rappturetool.updateFrame(this, change, f, g, p, s), "value")
         play.observe(lambda change, this=self, f=frames, g=self.fig, p=play, s=self.sl: setattr(self.sl, 'value', list(f.keys())[change['new']]), "value")
         self.sl.layout.width='99%'
@@ -1013,3 +1022,8 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             self.plotXY(sequence, hashlist, out)        
         else :
             self.plotSequence(sequence, hashlist, out)
+            
+    def clearHistory(self, sequence, out):
+        self.history = {k: v for k, v in self.history.items() if k == self.hashitem}
+        self.showHistory(sequence, out)
+            

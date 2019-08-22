@@ -14,7 +14,7 @@ from numpy import pi as nppi
 from numpy import sin as npsin
 from numpy import cos as npcos
 from numpy import outer as npouter
-from numpy import outer as npones
+from numpy import ones as npones
 from numpy import array as nparray
 from numpy import meshgrid as npmeshgrid
 from numpy import fromstring as npfromstring
@@ -2067,7 +2067,7 @@ class CrystalViewerSimplified (CrystalSimplified):
                         if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
                             loading = False
                         else:    
-                            print ("waiting results from nanohub [" + session_id + "]")
+                            print ("waiting results from nanoHUB [" + session_id + "]")
                             time.sleep(5);
                             status = self.session.checkStatus(session_id) 
                 xml_text = self.session.getResults(session_id, status['run_file'])
@@ -3104,7 +3104,7 @@ class BravaisViewerSimplified (CrystalSimplified):
                             if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] != "":
                                 loading = False
                             else:    
-                                print ("waiting results from nanohub [" + session_id + "]")
+                                print ("waiting results from nanoHUB [" + session_id + "]")
                                 time.sleep(5);
                                 status = self.session.checkStatus(session_id) 
                     xml_text = self.session.getResults(session_id, status['run_file'])
