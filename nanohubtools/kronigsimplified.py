@@ -103,7 +103,15 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
     def updateTheme(self, theme):
         if (theme != self.theme and (theme == "plotly_white" or theme == "plotly_dark"or theme == "plotly")):
             self.theme = theme
-            self.fig.update({'layout':{'template':self.theme}});
+            data = []
+            for t in self.fig.data:
+                if self.theme == "plotly_dark" and t["line"]["color"] == "black":
+                    data.append({"line": {"color": "white"}})
+                elif self.theme != "plotly_dark" and t["line"]["color"] == "white":
+                    data.append({"line": {"color": "black"}})
+                else:
+                    data.append({})
+            self.fig.update({'layout':{'template':self.theme}, 'data':data});
 
         
     def displayOptions(self):
@@ -975,12 +983,11 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         self.current_view = option
         if option in [
                 "option1","option2","option3","option4",
-                "option5","option6","option7","option8",
-                "option9",
+                "option5","option6","option7","option8",                
             ]:
             self.plotXY(option,[self.hashitem],self.content_component_output)
         elif option in [
-                "option7a","option7b","option8a","option8b"
+                "option7a","option7b","option8a","option8b","option9",
             ]:
             self.plotWave('option3', option,[self.hashitem],self.content_component_output)
             
@@ -1119,10 +1126,7 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                         t["line"]["color"] = "lightgrey"
                 traces.extend(tr)
         out.clear_output()   
-        self.fig.data=[]
-        if field == "option9":
-            ly['xaxis']['type'] = "log"
-            
+        self.fig.data=[]            
         self.fig.update({
             'data': traces,
             'layout' : {
@@ -1158,13 +1162,16 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             
     def plotWave(self, base, field, hashlist, out):
         traces = []
-        ly = {"title":"", 'xaxis':{'type':"","title": "", "autorange":False}, 'yaxis':{'type':"","title": "", "autorange":False}}
-        ly2 = {"title":"", 'xaxis':{'type':"","title": "", "autorange":False}, 'yaxis':{'type':"","title": "", "autorange":False}}
+        ly = {"title":"", 'xaxis':{'type':"linear","title": "", "autorange":False}, 'yaxis':{'type':"linear","title": "", "autorange":False}}
+        ly2 = {"title":"", 'xaxis':{'type':"linear","title": "", "autorange":False}, 'yaxis':{'type':"linear","title": "", "autorange":False}}
         for hash in hashlist:
             if (hash in self.history) and field in (self.history[hash]):            
                 tr, ly = self.buildXYPlotly(self.history[hash][field])
                 for t in tr:
-                    t["xaxis"] = "x2"                
+                    t["xaxis"] = "x2" 
+                    if t["line"]["color"] == "yellow":
+                        t["line"]["color"] = "#984ea3"
+
                 if (hash != self.hashitem):
                     p1 = self.history[self.hashitem]["parameters"].items()
                     p2 = self.history[hash]["parameters"].items()
@@ -1191,6 +1198,12 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                 traces.extend(tr)
         out.clear_output()   
         self.fig.data=[]
+
+        if field == "option9":
+            ly['xaxis']['type'] = "log"
+        else:
+            ly['xaxis']['type'] = "linear"
+        
         self.fig.update({
             'data': traces,
             'layout' : {
@@ -1199,21 +1212,24 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                     'domain': [0, 0.29],
                     'title' : ly2['xaxis']['title'],
                     'autorange' : False,
-                    'range' : [0,1]
+                    'range' : [0,1],
+                    'type' : 'linear',
                 },
                 'xaxis2' : {
                     'domain': [0.31, 1.0],
                     'title' : ly['xaxis']['title'],
                     'autorange' : ly['xaxis']['autorange'],
-                    #'range' : ly['xaxis']['range'],
+                    'type' : ly['xaxis']['type'],
                 },
                 'yaxis' : {
                     'title' : ly2['yaxis']['title'],
                     'autorange' : True,
+                    'type' : 'linear',
                 },
 
             }, 
         })   
+        
         buttons = []
         if (len(hashlist) == 1 and len(self.history)>1):        
             bt = Button(description="Compare",layout=Layout(width='auto'))
@@ -1234,12 +1250,11 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
             hashlist.append(hash)
         if sequence in [
                 "option1","option2","option3","option4",
-                "option5","option6","option7","option8",
-                "option9",
+                "option5","option6","option7","option8",                
             ]:
             self.plotXY(sequence, hashlist, out)        
         elif sequence in [
-                "option7a","option7b","option8a","option8b"
+                "option7a","option7b","option8a","option8b","option9"
             ]:
             self.plotWave('option3', sequence, hashlist, out)
             

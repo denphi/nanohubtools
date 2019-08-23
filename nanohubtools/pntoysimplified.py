@@ -130,12 +130,19 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         
     def exposedChangeTheme(self, theme):
         self.updateTheme(theme)
-        
+
     def updateTheme(self, theme):
         if (theme != self.theme and (theme == "plotly_white" or theme == "plotly_dark"or theme == "plotly")):
             self.theme = theme
-            self.fig.update({'layout':{'template':self.theme}});
-
+            data = []
+            for t in self.fig.data:
+                if self.theme == "plotly_dark" and t["line"]["color"] == "black":
+                    data.append({"line": {"color": "white"}})
+                elif self.theme != "plotly_dark" and t["line"]["color"] == "white":
+                    data.append({"line": {"color": "black"}})
+                else:
+                    data.append({})
+            self.fig.update({'layout':{'template':self.theme}, 'data':data});
         
     def displayOptions(self):      
         for opt in ['Na','Nd','taun','taup','impuritylevel']:
