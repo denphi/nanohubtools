@@ -493,15 +493,15 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
                                 },
                                 "Tri":{
                                     "icon": "potential3",
-                                    "label": "Sinosoidal Potential",
+                                    "label": "Triangular Well",
                                 },
                                 "para":{
                                     "icon": "potential4",
-                                    "label": "Triangular Well",
+                                    "label": "Parabolic Potential",
                                 },
                                 "Sine":{
                                     "icon": "potential2",
-                                    "label": "Parabolic Potential",
+                                    "label": "Sinosoidal Potential",
                                 },
                                 "cola":{
                                     "icon": "potential5",

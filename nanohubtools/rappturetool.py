@@ -1298,11 +1298,8 @@ class Rappturetool (Nanohubtool):
                 if (id in parameters):
                     if elem.tag not in Rappturetool.discardtags:
                         param = {"type": elem.tag, "description" : description}
-                        param['units'] = elem.find('units')
                         param['id'] = id
                         param['label'] = labelt                        
-                        if param['units'] is not None:
-                            param['units'] = param['units'].text
                         param['units'] = elem.find('units')
                         if param['units'] is not None:
                             param['units'] = param['units'].text

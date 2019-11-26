@@ -1,3 +1,6 @@
+#!/usr/bin/env python
+# coding: utf-8
+
 #  Copyright 2019 HUBzero Foundation, LLC.
 
 #  Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,7 +26,4 @@
 #  Authors:
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
-
-version_info = (0, 2, 3)
-__version__ = ".".join(map(str, version_info))
 
