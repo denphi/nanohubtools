@@ -9,6 +9,7 @@ class TeleportGlobals():
         self.assets = []
         self.meta = []
         self.manifest = {}
+        self.ids = {}
         
     def __json__(self):
         return {
@@ -31,6 +32,13 @@ class TeleportGlobals():
           react += "document.head.appendChild(tstyle);\n";
           react += "tstyle.sheet.insertRule('" + asset["content"] + "');\n";
       return react
+      
+    def addAsset(self, id, asset):
+      if id in self.ids:
+        pass;
+      else:
+        self.ids[id] = len(self.ids)
+        self.assets.append(asset)
       
         
 class TeleportApp():
@@ -253,7 +261,9 @@ class TeleportComponent():
 
   def addPropVariable(self, state, definition={type:"string", "defaultValue":""}):
     if isinstance(definition, dict):
-      if ("type" in definition and "defaultValue" in definition):
+      if ("type" in definition and definition["type"] == "func"):
+        self.propDefinitions[state] =  { "type": definition["type"] }
+      elif ("type" in definition and "defaultValue" in definition):
         self.propDefinitions[state] =  {"type": definition["type"], "defaultValue": definition["defaultValue"] }
       else:
         raise AttributeError("type and/or defaultValue are missing on the definition")
@@ -273,13 +283,8 @@ class TeleportComponent():
     react += "};\n"
     react += "}; \n"
     react += "render(){\n"
-    react += "var children = [];\n"
     react += "let self=this;\n"
-    react += "children.push(\n"
-    react += self.node.buildReact()
-    react += ")\n"
-    react += "var node = React.createElement('div', {key:Util.create_UUID()}, children)  \n"              
-    react += "return node;\n"
+    react += "return " + self.node.buildReact() + ";\n"
     react += "}\n"
     react += "}\n"
     return react
@@ -292,9 +297,9 @@ class TeleportProject():
       self.components = {
         "MainComponent" : TeleportComponent("MainComponent", TeleportElement(TeleportContent(elementType="container")))
       };
-      self.components["MainComponent"].node.content.style = {
-        "height": "100vh",
-      }
+      #self.components["MainComponent"].node.content.style = {
+      #  "height": "100vh",
+      #}
       
   def __json__(self):
       return {
@@ -319,7 +324,7 @@ class TeleportProject():
       v = v.validate(self.__json__())
       return v;
 
-  def buildReact(self):
+  def buildReact(self, filename="tempreact.html"):
     react = ""
     react += "<!DOCTYPE html>\n"
     react += "<html style='height:100%'>\n"
@@ -374,7 +379,7 @@ class TeleportProject():
     react += "</script>\n"
     react += "  </body>\n"
     react += "</html>\n"
-    f = open("tempreact.html", "w")
+    f = open(filename, "w")
     f.write(react)
     f.close()
     return react
@@ -519,24 +524,75 @@ class MaterialBuilder():
       
     ToolBar = TeleportElement(MaterialContent(elementType="Toolbar"))
     ToolBar.content.attrs["variant"] = kwargs.get("variant", "regular")
+
+    
     IconButton = TeleportElement(MaterialContent(elementType="IconButton"))
     IconButton.content.attrs["edge"] = "start"
     IconButton.content.attrs["color"] = "inherit"
     IconButton.content.attrs["aria-label"] = "menu"
     if kwargs.get("onClickMenu", None) is not None:
       IconButton.content.events["click"] = kwargs.get("onClickMenu", [])
-      
-      
     Icon = TeleportElement(MaterialContent(elementType="Icon"))
-    IconText = TeleportStatic(content="menu")
-    Icon.addContent(IconText)
+    IconText = TeleportStatic(content="unfold_more")
+    Icon.addContent(IconText)   
     IconButton.addContent(Icon)
+    
+    
     Typography = TeleportElement(MaterialContent(elementType="Typography"))
     Typography.content.attrs["variant"] = "h6"
     TypographyText = TeleportStatic(content=kwargs.get("title", ""))
     Typography.addContent(TypographyText)
 
-    ToolBar.addContent(IconButton)
+    if kwargs.get("state", None) is not None:
+      states = {0:"unfold_more", 1:"unfold_less"}
+      for k,v in states.items():
+        IconButton = TeleportElement(MaterialContent(elementType="IconButton"))
+        IconButton.content.attrs["edge"] = "start"
+        IconButton.content.attrs["color"] = "inherit"
+        IconButton.content.attrs["aria-label"] = "menu"
+        IconButton.content.events["click"] = [
+          {
+            "type": "stateChange",
+            "modifies": kwargs.get("state", None),
+            "newState": (k==0)
+          },
+        ]
+        if kwargs.get("styles", None) is not None:
+          styles = kwargs.get("styles", None)
+          IconButton.content.events["click"].append({
+            "type": "stateChange",
+            "modifies": styles[0],
+            "newState": styles[1][k]
+          })
+        
+        Icon = TeleportElement(MaterialContent(elementType="Icon"))
+        IconText = TeleportStatic(content=v)
+        Icon.addContent(IconText)   
+        IconButton.addContent(Icon)
+        IconButtonCondition = TeleportConditional(TeleportContent(elementType="container"))    
+        IconButtonCondition.reference = {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "state",
+            "id": kwargs.get("state", None)
+          }    
+        }
+        IconButtonCondition.value = k
+        IconButtonCondition.addContent(IconButton)
+        ToolBar.addContent(IconButtonCondition)
+    else:
+      IconButton = TeleportElement(MaterialContent(elementType="IconButton"))
+      IconButton.content.attrs["edge"] = "start"
+      IconButton.content.attrs["color"] = "inherit"
+      IconButton.content.attrs["aria-label"] = "menu"
+      if kwargs.get("onClickMenu", None) is not None:
+        IconButton.content.events["click"] = kwargs.get("onClickMenu", [])
+      Icon = TeleportElement(MaterialContent(elementType="Icon"))
+      IconText = TeleportStatic(content="unfold_more")
+      Icon.addContent(IconText)   
+      IconButton.addContent(Icon)
+      ToolBar.addContent(IconButton)
+    
     ToolBar.addContent(Typography)
     AppBar.addContent(ToolBar)
     return AppBar
@@ -575,25 +631,23 @@ class MaterialBuilder():
       Drawer.content.attrs["open"] = state
       
     List = TeleportElement(MaterialContent(elementType="List"))
-    ListItem = TeleportElement(MaterialContent(elementType="ListItem"))
-    ListItem.content.attrs["button"] = True
     if "onClickClose" in kwargs:
-      ListItem.content.events["click"] = kwargs.get("onClickClose", [])
-    
-    ListItemIcon = TeleportElement(MaterialContent(elementType="ListItemIcon"))
-    InboxIcon = TeleportElement(MaterialContent(elementType="Icon"))
-    InboxIconText = TeleportStatic(content="chevron_" + kwargs.get("anchor", "left"))
-    InboxIcon.addContent(InboxIconText)    
-    ListItemText = TeleportElement(MaterialContent(elementType="ListItemText"))
-    ListItemText.content.attrs["primary"] = ""
-    Divider = TeleportElement(MaterialContent(elementType="Divider"))
-    ListItemIcon.addContent(InboxIcon)
-    ListItem.addContent(ListItemIcon)
-    #ListItem.addContent(ListItemText)
-    List.addContent(ListItem)
-    Drawer.addContent(List)
-
-    Drawer.addContent(Divider)
+      ListItem = TeleportElement(MaterialContent(elementType="ListItem"))
+      ListItem.content.attrs["button"] = True
+      ListItem.content.events["click"] = kwargs.get("onClickClose", [])    
+      ListItemIcon = TeleportElement(MaterialContent(elementType="ListItemIcon"))
+      InboxIcon = TeleportElement(MaterialContent(elementType="Icon"))
+      InboxIconText = TeleportStatic(content="chevron_" + kwargs.get("anchor", "left"))
+      InboxIcon.addContent(InboxIconText)    
+      ListItemText = TeleportElement(MaterialContent(elementType="ListItemText"))
+      ListItemText.content.attrs["primary"] = ""
+      Divider = TeleportElement(MaterialContent(elementType="Divider"))
+      ListItemIcon.addContent(InboxIcon)
+      ListItem.addContent(ListItemIcon)
+      #ListItem.addContent(ListItemText)
+      List.addContent(ListItem)
+      Drawer.addContent(List)
+      Drawer.addContent(Divider)
         
     return Drawer
 
@@ -650,25 +704,39 @@ class PlotlyContent(TeleportContent):
     
 class PlotlyBuilder():
   def BasePlotlyComponent(*args, **kwargs):
-    BasePlotlyComponent = TeleportComponent("BasePlotlyComponent", TeleportElement(TeleportContent(elementType="container")))
-    BasePlotlyComponent.addStateVariable("data", {"type":"array", "defaultValue": [{'x': [], 'y': []}]})
+    
     PlotlyPlot = TeleportElement(PlotlyContent(elementType="Plot"))
     PlotlyPlot.content.attrs["data"] = {
       "type": "dynamic",
       "content": {
-        "referenceType": "state",
+        "referenceType": "prop",
         "id": "data"
+      }    
+    }
+    PlotlyPlot.content.attrs["layout"] = {
+      "type": "dynamic",
+      "content": {
+        "referenceType": "prop",
+        "id": "layout"
+      }    
+    }
+    PlotlyPlot.content.attrs["frames"] = {
+      "type": "dynamic",
+      "content": {
+        "referenceType": "prop",
+        "id": "frames"
       }    
     }
     PlotlyPlot.content.attrs["useResizeHandler"] = True
     PlotlyPlot.content.style = {
-      "height": "100vh",
+      "height": "100%",
+      "width": "100%",
     }
-    BasePlotlyComponent.node.content.style = {
-      "height": "100vh"
-    }
-    
-    BasePlotlyComponent.addNode(PlotlyPlot)
+
+    BasePlotlyComponent = TeleportComponent("BasePlotlyComponent", PlotlyPlot)
+    BasePlotlyComponent.addPropVariable("data", {"type":"array", "defaultValue": [{'x': [], 'y': []}]})    
+    BasePlotlyComponent.addPropVariable("layout", {"type":"array", "defaultValue": []})
+    BasePlotlyComponent.addPropVariable("frames", {"type":"array", "defaultValue": []})    
     return BasePlotlyComponent    
     
   def BasePlot(tp, *args, **kwargs):
@@ -676,13 +744,21 @@ class PlotlyBuilder():
       tp.components["BasePlotlyComponent"] = PlotlyBuilder.BasePlotlyComponent()  
       
     ContainerPlot = TeleportElement(TeleportContent(elementType="container"))
-    ContainerPlot.content.style = {
-      "height": "100vh"
-    }
         
     BasePlot = TeleportElement(TeleportContent(elementType="BasePlotlyComponent"))
+    BasePlot.content.style = {
+      "height": "inherit",
+      "width": "inherit",
+    }
+    
     if kwargs.get("data", None) is not None:
       BasePlot.content.attrs["data"] = kwargs.get("data", None)
+
+    if kwargs.get("layout", None) is not None:
+      BasePlot.content.attrs["layout"] = kwargs.get("layout", None)
+
+    if kwargs.get("frames", None) is not None:
+      BasePlot.content.attrs["frames"] = kwargs.get("frames", None)
 
     if kwargs.get("ref", None) is not None:
       BasePlot.content.attrs["ref"] = kwargs.get("ref", None)
@@ -696,6 +772,10 @@ class PlotlyBuilder():
         }    
       }
     
+    ContainerPlot.content.style = {
+      "height": "inherit",
+    }
+    
     ContainerPlot.addContent(BasePlot)
     return ContainerPlot
 
@@ -708,28 +788,36 @@ class NanohubUtils():
     pwd = kwargs.get("pwd", "")
     url = kwargs.get("url", "")
     js = ""
-    js += "function " + method_name + "(user, pwd){"
-    js += "  var data = '';"
-    js += "  data = 'client_id="+client_id+"&';"
-    js += "  data += 'client_secret="+client_secret+"&';"
-    js += "  data += 'grant_type=password&';"
-    js += "  data += 'username=' + user + '&';"
-    js += "  data += 'password=' + pwd + '&';"
-    js += "  var header_token = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': '*/*' };"
-    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };"
-    js += "  var url = '" + url + "';"
-    js += "  let self = this;"
-    js += "  Axios.request(url, options)"
-    js += "  .then(function(response){"
-    js += "    var data = response.data;"
-    js += "    window.sessionStorage.setItem('nanohub_token', data.token);"
-    js += "    window.sessionStorage.setItem('nanohub_refresh_token', data.refresh_token);"
-    js += "  }).catch(function(error){"
-    js += "    console.log(error.response);"
-    js += "  })"
+    js += "function " + method_name + "(user, pwd){\n"
+    js += "  var data = '';\n"
+    js += "  data = 'client_id="+client_id+"&';\n"
+    js += "  data += 'client_secret="+client_secret+"&';\n"
+    js += "  data += 'grant_type=password&';\n"
+    js += "  data += 'username=' + user + '&';\n"
+    js += "  data += 'password=' + pwd + '&';\n"
+    js += "  var header_token = { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': '*/*' };\n"
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"
+    js += "  var url = '" + url + "';\n"
+    js += "  var expiration = window.sessionStorage.getItem('nanohub_expires');\n"
+    js += "  var current_time = Date.now()\n";
+    #js += "  console.log (expiration, current_time);\n"
+    js += "  if (expiration === null || current_time > expiration){\n";
+    js += "    let self = this;\n"
+    js += "    Axios.request(url, options)\n"
+    js += "    .then(function(response){\n"
+    js += "      var data = response.data;\n"
+    js += "      window.sessionStorage.setItem('nanohub_token', String(data.access_token));\n"
+    js += "      window.sessionStorage.setItem('nanohub_expires', JSON.stringify(Date.now() + parseInt(data.expires_in) - 200));\n"
+    js += "      window.sessionStorage.setItem('nanohub_refresh_token', String(data.refresh_token));\n"
+    js += "    }).catch(function(error){\n"
+    js += "      window.sessionStorage.removeItem('nanohub_token');\n"
+    js += "      window.sessionStorage.removeItem('nanohub_expires');\n"
+    js += "      window.sessionStorage.removeItem('nanohub_refresh_token');\n"
+    js += "    })"
+    js += "  }"
     js += "}"
     
-    tp.globals.assets.append({
+    tp.globals.addAsset(method_name, {
       "type": "script",
       "content": js
     })
@@ -765,14 +853,14 @@ class NanohubUtils():
     js += "  Axios.request(url, options)"
     js += "  .then(function(response){"
     js += "    var data = response.data;"
-    js += "    window.sessionStorage.setItem('nanohub_token', data.token);"
-    js += "    window.sessionStorage.setItem('nanohub_refresh_token', data.refresh_token);"
+    js += "    window.sessionStorage.setItem('nanohub_token', JSON.stringify(data.token));"
+    js += "    window.sessionStorage.setItem('nanohub_refresh_token', JSON.stringify(data.refresh_token));"
     js += "  }).catch(function(error){"
     js += "    console.log(error.response);"
     js += "  })"
     js += "}"
     
-    tp.globals.assets.append({
+    tp.globals.addAsset(method_name, {
       "type": "script",
       "content": js
     })
@@ -923,7 +1011,7 @@ class NanohubUtils():
     js += "                if (tmparray.length == 0 ){"
     js += "                  param['default'] = param['options'][0][1];"
     js += "                }"
-    js += "              }              "
+    js += "              }"
     js += "              if (param['type'] == 'string'){"
     js += "                if (param['default'] && /\\r|\\n/.exec(param['default'].trim())){"
     js += "                  param['type'] = 'text';"
@@ -938,17 +1026,18 @@ class NanohubUtils():
     js += "        }"
     js += "      }"
     js += "    }"
-    js += "    window.sessionStorage.setItem('nanohub_tool_schema', params);"
+    js += "    window.sessionStorage.setItem('nanohub_tool_schema', JSON.stringify(params));"
+    js += "    window.sessionStorage.setItem('nanohub_tool_xml', JSON.stringify(data));"
     js += "  }).catch(function(error){"
     js += "    console.log(error.response);"
     js += "  });"
     js += "}"
     
-    tp.globals.assets.append({
+    tp.globals.addAsset(method_name, {
       "type": "script",
       "content": js
     })
-    
+
     return [
       {
         "type": "propCall",
@@ -972,7 +1061,7 @@ class NanohubUtils():
     NanohubUtils.validateCredentials(tp, method_name = "validateCredentials", client_id=client_id, client_secret=client_secret, url=url_token);
     
     js = ""
-    #js += "validateCredentials('"+user+"', '"+pwd+"');"
+    js += "validateCredentials('"+user+"', '"+pwd+"');"
     js += "buildSchema('"+toolname+"');" 
     
     tp.globals.assets.append({
@@ -996,7 +1085,8 @@ class NanohubUtils():
 class FormHelper():
   
   def Number(component, label, description, state, value=0, suffix="",*args, **kwargs):
-    component.addStateVariable(state, {"type":"integer", "defaultValue": value})
+    if (state not in component.stateDefinitions):
+      component.addStateVariable(state, {"type":"integer", "defaultValue": value})
     number = TeleportElement(TeleportContent(elementType="FormatCustomNumber"))
     variant = kwargs.get("variant", "outlined")
     number.content.attrs["variant"] = variant
@@ -1022,7 +1112,8 @@ class FormHelper():
     return number
 
   def Switch(component, label, description, state, value=0,*args, **kwargs):
-    component.addStateVariable(state, {"type":"boolean", "defaultValue": value})
+    if (state not in component.stateDefinitions):  
+      component.addStateVariable(state, {"type":"boolean", "defaultValue": value})
     switch = TeleportElement(MaterialContent(elementType="Switch"))
     #variant = kwargs.get("variant", "outlined")
     #switch.content.attrs["variant"] = variant
@@ -1055,7 +1146,8 @@ class FormHelper():
     return Typography
     
   def Select(component, label, description, state, value, options,*args, **kwargs):
-    component.addStateVariable(state, {"type":"string", "defaultValue": value})
+    if (state not in component.stateDefinitions):  
+      component.addStateVariable(state, {"type":"string", "defaultValue": value})
     select = TeleportElement(MaterialContent(elementType="TextField"))
     variant = kwargs.get("variant", "outlined")
     select.content.attrs["variant"] = variant
@@ -1087,33 +1179,311 @@ class FormHelper():
 
     return select
 
+  def Group(elements, *args, **kwargs):
+    group = TeleportElement(TeleportContent(elementType="container"))
+    style = kwargs.get("style", { 'margin': '15px' } )
+    group.content.style = style    
+    for element in elements:
+      group.addContent(element)
+    return group
+
+  def Tabs(component, children, state, *args, **kwargs):
+    if (state not in component.stateDefinitions):
+      component.addStateVariable(state, {"type":"integer", "defaultValue": kwargs.get("default_value", 0)})
   
-class PNToyBuilder():
-  def PNToySettingsComponent(*args, **kwargs):
-    PNToySettingsComponent = TeleportComponent("PNToySettingsComponent", TeleportElement(TeleportContent(elementType="container")))
-    #BasePlotlyComponent.addStateVariable("parameters", {"type":"array", "defaultValue": []})
-    PNToySettingsComponent.addStateVariable("selected_tab", {"type":"integer", "defaultValue": 0})
-    PNToySettingsComponent.addStateVariable("materialp", {"type":"string", "defaultValue": "Si"})
-    container = TeleportElement(TeleportContent(elementType="container"))
-
-    AppBar = TeleportElement(MaterialContent(elementType="AppBar"))
-    AppBar.content.attrs["position"] = "static"
-    AppBar.content.attrs["color"] = "secondary"
-
-    Tabs = TeleportElement(MaterialContent(elementType="Tabs"))
-    Tabs.content.attrs["value"] = {
+    main_container = TeleportElement(TeleportContent(elementType="container"))  
+    bar = TeleportElement(MaterialContent(elementType="AppBar"))
+    bar.content.attrs["position"] = "static"
+    bar.content.attrs["color"] = "secondary"
+  
+    tabs = TeleportElement(MaterialContent(elementType="Tabs"))
+    tabs.content.attrs["value"] = {
       "type": "dynamic", "content": {
-        "referenceType": "state", "id": "selected_tab"
+        "referenceType": "state", "id": state
       }    
     }
+    
+    i = 0
+    bar.addContent(tabs)    
+    main_container.addContent(bar)    
+    for key,value in children.items():
+      container = TeleportConditional(TeleportContent(elementType="container"))    
+      container.reference = {
+        "type": "dynamic",
+        "content": {
+          "referenceType": "state",
+          "id": state
+        }    
+      }
+      container.value = i
+      if isinstance(value, list): 
+        container.addContent(FormHelper.Group(value))
+      elif isinstance(value, TeleportNode): 
+        container.addContent(value)
+      else:
+        raise Exception("invalid type of component")
 
-    selected_tab_state = {
+      tab = TeleportElement(MaterialContent(elementType="Tab"))
+      tab.content.attrs["label"] = key
+      tab.content.events["click"] = [
+        {
+          "type": "stateChange",
+          "modifies": state,
+          "newState": i
+        },
+      ]  
+      i = i+1
+      main_container.addContent(container)
+      tabs.addContent(tab)
+      
+    return main_container
+
+  def ConditionalGroup(component, elements, state, value, *args, **kwargs):
+    if (state not in component.stateDefinitions):    
+      raise Exception("Not existing state") 
+    container = TeleportConditional(TeleportContent(elementType="container"))
+    container.reference = {
       "type": "dynamic",
       "content": {
         "referenceType": "state",
-        "id": "selected_tab"
+        "id": state
       }    
     }    
+    container.value = value
+    for element in elements:     
+      if isinstance(element, list): 
+        container.addContent(FormHelper.Group(element))
+      elif isinstance(element, TeleportNode): 
+        container.addContent(element)
+    return container
+
+
+  
+class RapptureBuilder():
+
+  def getText(tp, *args, **kwargs):    
+    method_name = kwargs.get("method_name", "getText")
+    eol = "\n";
+    js = ""
+    js += "function " + method_name + "( obj, fields ){" + eol
+    js += "  var text = '';" + eol
+    js += "  if(obj){" + eol
+    js += "    var objf = obj;" + eol
+    js += "    try{" + eol
+    js += "      for (var i=0;i<fields.length;i++){" + eol
+    js += "        var field = fields[i];" + eol
+    js += "        objf = objf.querySelectorAll(field);" + eol
+    js += "        if (objf.length <= 0){" + eol
+    js += "          return '';" + eol
+    js += "        } else {" + eol
+    js += "          objf = objf[0];" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "      text = objf.innerHTML" + eol
+    js += "    } catch(error) {" + eol
+    js += "      text = '';" + eol
+    js += "    }" + eol
+    js += "  }" + eol
+    js += "  return text;" + eol
+    js += "}" + eol
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+    return [
+      {
+        "type": "propCall",
+        "calls": method_name,
+        "args": ['undefined','[]']
+      }
+    ] 
+    
+  def getXY(tp, *args, **kwargs):    
+    eol = "\n";
+    method_name = kwargs.get("method_name", "getXY")
+    js = ""
+    js += "function " + method_name + "( field, container ){" + eol
+    js += "  var list_v = Array()" + eol
+    js += "  component = field.querySelectorAll(container);" + eol
+    js += "  for (var i=0; i<component.length; i++){" + eol
+    js += "    var obj = component[i].querySelectorAll('xy');" + eol
+    js += "    if (obj.length>0){" + eol
+    js += "      var xy = obj[0].innerHTML;" + eol
+    js += "    }" + eol
+    js += "    list_v.push(xy);" + eol
+    js += "  }" + eol
+    js += "  return list_v;" + eol
+    js += "}" + eol
+    
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+    return [
+      {
+        "type": "propCall",
+        "calls": method_name,
+        "args": ['undefined','']
+      }
+    ] 
+
+  def buildXYPlotly(tp, *args, **kwargs):    
+    eol = "\n";  
+    method_name = kwargs.get("method_name", "buildXYPlotly")
+    getTextFunction = kwargs.get("getText", "getText")
+    getXYFunction = kwargs.get("getXY", "getXY")
+    RapptureBuilder.getText(tp, method_name=getTextFunction)
+    RapptureBuilder.getXY(tp, method_name=getXYFunction)
+    js = ""
+    js += "function " + method_name + "( fields, labels ){" + eol
+    js += "  var traces = Array();" + eol
+    js += "  var layout = {};" + eol
+    js += "  var xrange = [undefined,undefined];" + eol
+    js += "  var xrange = [undefined,undefined];" + eol
+    js += "  var yrange = [undefined,undefined];" + eol
+    js += "  var xunits = '';" + eol
+    js += "  var yunits = '';" + eol    
+    js += "  var xaxis = '';" + eol
+    js += "  var yaxis = '';" + eol    
+    js += "  var xscale = 'linear';" + eol
+    js += "  var yscale = 'linear';" + eol    
+    js += "  var title = '';" + eol
+    js += "  for (var i=0;i<fields.length;i++){" + eol
+    js += "    var field= fields[i];" + eol
+    js += "    var component = " + getXYFunction + "(field, 'component');" + eol
+    js += "    var label = " + getTextFunction + " (field, ['about','label']);" + eol
+    js += "    var style = " + getTextFunction + " (field, ['about','style']);" + eol
+    js += "    var line = {'color' : 'blue'};" + eol
+    js += "    if (style != ''){" + eol
+    js += "      var options = style.trim().split('-');" + eol
+    js += "      for (var j=0;j<options.length;j++){" + eol
+    js += "        var option = options[j]" + eol
+    js += "        var val = option.trim().split(' ');" + eol
+    js += "        if (val.length == 2 ){" + eol
+    js += "          if (val[0]=='color')" + eol
+    js += "            line['color'] = val[1];" + eol
+    js += "          else if (val[0]=='linestyle')" + eol
+    js += "            if (val[1]=='dashed')" + eol
+    js += "              line['dash'] = 'dash';" + eol
+    js += "            else if (val[1]=='dotted')" + eol
+    js += "              line['dash'] = 'dot';" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "    }" + eol
+    js += "    if (labels != undefined){" + eol
+    js += "      label = label + " " + labels[i];" + eol
+    js += "    }" + eol
+    js += "    title = " + getTextFunction + " (field, ['about','group']);" + eol
+    js += "    var xaxis = " + getTextFunction + " (field, ['xaxis','label']);" + eol
+    js += "    var xunits = " + getTextFunction + " (field, ['xaxis','units']);" + eol
+    js += "    var xscale = " + getTextFunction + " (field, ['xaxis','scale']);" + eol
+    js += "    try{" + eol
+    js += "      var tempval;" + eol
+    js += "      if (xrange[0] == undefined){" + eol
+    js += "        tempval = parseFloat(" + getTextFunction + " (field, ['xaxis','min']));" + eol
+    js += "      } else{" + eol
+    js += "        tempval = min(xrange[0], parseFloat(" + getTextFunction + " (field, ['xaxis','min'])));" + eol
+    js += "      }" + eol
+    js += "      if ( !isNaN(tempval)){" + eol
+    js += "        xrange[0] = tempval;" + eol
+    js += "      }" + eol
+    js += "    } catch(error){}" + eol
+    js += "    try{" + eol
+    js += "      var tempval;" + eol
+    js += "      if (xrange[1] == undefined){" + eol
+    js += "        tempval = parseFloat(" + getTextFunction + " (field, ['xaxis','max']));" + eol
+    js += "      } else{" + eol
+    js += "        tempval = min(xrange[1], parseFloat(" + getTextFunction + " (field, ['xaxis','max'])));" + eol
+    js += "      }" + eol
+    js += "      if ( !isNaN(tempval)){" + eol
+    js += "        xrange[1] = tempval;" + eol
+    js += "      }" + eol
+    js += "    } catch(error){}" + eol
+    js += "    try{" + eol
+    js += "      var tempval;" + eol
+    js += "      if (yrange[0] == undefined){" + eol
+    js += "        tempval = parseFloat(" + getTextFunction + " (field, ['yaxis','min']));" + eol
+    js += "      } else{" + eol
+    js += "        tempval = min(yrange[0], parseFloat(" + getTextFunction + " (field, ['yaxis','min'])));" + eol
+    js += "      }" + eol
+    js += "      if ( !isNaN(tempval)){" + eol
+    js += "        yrange[0] = tempval;" + eol
+    js += "      }" + eol
+    js += "    } catch(error){}" + eol
+    js += "    try{" + eol
+    js += "      var tempval;" + eol
+    js += "      if (yrange[1] == undefined){" + eol
+    js += "        tempval = parseFloat(" + getTextFunction + " (field, ['yaxis','max']));" + eol
+    js += "      } else{" + eol
+    js += "        tempval = min(yrange[1], parseFloat(" + getTextFunction + " (field, ['yaxis','max'])));" + eol
+    js += "      }" + eol
+    js += "      if ( !isNaN(tempval)){" + eol
+    js += "        yrange[1] = tempval;" + eol
+    js += "      }" + eol
+    js += "    } catch(error){}" + eol
+    js += "    if (xscale == ''){" + eol
+    js += "      xscale = 'linear';" + eol
+    js += "      yaxis = " + getTextFunction + " (field, ['yaxis','label']);" + eol
+    js += "      yunits = " + getTextFunction + " (field, ['yaxis','units']);" + eol
+    js += "      yscale = " + getTextFunction + " (field, ['yaxis','scale']);" + eol
+    js += "    }" + eol
+    js += "    if (yscale == ''){" + eol
+    js += "      yscale = 'linear';" + eol
+    js += "    }" + eol
+    js += "    for (var j=0;j<component.length;j++){" + eol
+    js += "      var obj = component[j];" + eol
+    js += "      var xy = obj.trim().replace(/--/g, '').replace(/\\n|\\r/g,' ').split(' ');" + eol
+    js += "      xy = xy.filter(function(el){ return el != '' });" + eol    
+    js += "      xx = xy.filter(function(el, index){ return index%2 == 0 }).map(Number);" + eol    
+    js += "      yy = xy.filter(function(el, index){ return index%2 == 1 }).map(Number);" + eol        
+    js += "      var trace1 = {" + eol
+    js += "        'type' : 'scatter'," + eol
+    js += "        'x' : xx," + eol
+    js += "        'y' : yy," + eol
+    js += "        'mode' : 'lines'," + eol
+    js += "        'name' : label," + eol
+    js += "        'line' : line," + eol
+    js += "      };" + eol
+    js += "      traces.push(trace1);" + eol
+    js += "    }" + eol    
+    js += "  }" + eol
+    js += "  layout = {" + eol
+    js += "    'title' : title," + eol
+    js += "    'xaxis' : {" + eol
+    js += "      'title' : xaxis + ' [' + xunits + ']'," + eol
+    js += "      'type' : xscale," + eol
+    js += "      'autorange' : true," + eol
+    js += "      'range' : [-1,1]," + eol
+    js += "      'exponentformat' :  'e'," + eol
+    js += "    }," + eol
+    js += "    'yaxis' : {" + eol
+    js += "      'title' : yaxis + ' [' + yunits + ']'," + eol
+    js += "      'type' : yscale," + eol
+    js += "      'autorange' : true," + eol
+    js += "      'range' : [-1,1]," + eol
+    js += "      'exponentformat' : 'e'" + eol
+    js += "    }," + eol
+    js += "    'legend' : { 'orientation' : 'h', 'x':0.1, 'y':1.1 }," + eol
+    js += "  };" + eol
+    js += "  if (xrange[0] != undefined && xrange[1] != undefined){" + eol
+    js += "    layout['xaxis']['autorange'] = false;" + eol
+    js += "    layout['xaxis']['range'] = xrange;" + eol 
+    js += "  }" + eol
+    js += "  if (yrange[0] != undefined && yrange[1] != undefined){" + eol
+    js += "    layout['yaxis']['autorange'] = false;" + eol
+    js += "    layout['yaxis']['range'] = yrange;" + eol
+    js += "  }" + eol
+    js += "  return {'traces':traces, 'layout':layout}" + eol
+    js += "}" + eol
+    
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+
+class PNToyBuilder():
+  def PNToySettingsComponent(*args, **kwargs):
+    PNToySettingsComponent = TeleportComponent("PNToySettingsComponent", TeleportElement(TeleportContent(elementType="container")))
 
     p_len = FormHelper.Number(
       PNToySettingsComponent, 
@@ -1185,31 +1555,6 @@ class PNToyBuilder():
       "1000000000000000",
       "/cm3"
     )
-    
-    parameters_structure = TeleportConditional(TeleportContent(elementType="container"))    
-    parameters_structure.reference = selected_tab_state
-    parameters_structure.value = 0
-    parameters_structure.node.content.style = { 'margin': '15px' }    
-    parameters_structure.addContent(FormHelper.Header("Structure"))    
-    parameters_structure.addContent(p_len)
-    parameters_structure.addContent(p_node)
-    parameters_structure.addContent(i_len)
-    parameters_structure.addContent(i_node)
-    parameters_structure.addContent(n_len)
-    parameters_structure.addContent(n_node)    
-    parameters_structure.addContent(Na)
-    parameters_structure.addContent(Nd)
-
-    parameters_structure_tab = TeleportElement(MaterialContent(elementType="Tab"))
-    parameters_structure_tab.content.attrs["label"] = "Structure"
-    parameters_structure_tab.content.events["click"] = [
-      {
-        "type": "stateChange",
-        "modifies": "selected_tab",
-        "newState": 0
-      },
-    ]
-
 
     materialp = FormHelper.Select( 
       PNToySettingsComponent,
@@ -1244,18 +1589,7 @@ class PNToyBuilder():
       "impurity",
       True,
     )
-    
-    impurity_state = {
-      "type": "dynamic",
-      "content": {
-        "referenceType": "state",
-        "id": "impurity"
-      }    
-    }    
-    impurity_conditional = TeleportConditional(TeleportContent(elementType="container"))
-    impurity_conditional.reference = impurity_state
-    impurity_conditional.value = 1
-    
+
     impuritydoping = FormHelper.Select( 
       PNToySettingsComponent,
       "Type of doping",
@@ -1272,31 +1606,15 @@ class PNToyBuilder():
       "10000000000000",
       "/cm3"
     )
-    impurity_conditional.addContent(impuritydoping)
-    impurity_conditional.addContent(impuritylevel)
+    
+    impurity_conditional = FormHelper.ConditionalGroup(
+      PNToySettingsComponent,
+      [
+        impuritydoping,
+        impuritylevel
+      ], "impurity", 1
+    )    
 
-    parameters_materials = TeleportConditional(TeleportContent(elementType="container"))
-    parameters_materials.reference = selected_tab_state
-    parameters_materials.value = 1
-    parameters_materials.addContent(FormHelper.Header("Materials"))
-    parameters_materials.addContent(materialp)
-    parameters_materials.addContent(FormHelper.Header("Minority carrier lifetime"))
-    parameters_materials.addContent(taun)
-    parameters_materials.addContent(taup)
-    parameters_materials.addContent(FormHelper.Header("Impurities"))
-    parameters_materials.addContent(impurity)
-    parameters_materials.addContent(impurity_conditional)
-    parameters_materials.node.content.style = { 'margin': '15px' }
-
-    parameters_materials_tab = TeleportElement(MaterialContent(elementType="Tab"))
-    parameters_materials_tab.content.attrs["label"] = "Materials"
-    parameters_materials_tab.content.events["click"] = [
-      {
-        "type": "stateChange",
-        "modifies": "selected_tab",
-        "newState": 1
-      },
-    ]
     
     temperature = FormHelper.Number( 
       PNToySettingsComponent,
@@ -1324,39 +1642,623 @@ class PNToyBuilder():
       "20",
       ""
     )
+        
     
-    parameters_ambient = TeleportConditional(TeleportContent(elementType="container"))
-    parameters_ambient.reference = selected_tab_state
-    parameters_ambient.value = 2
-    parameters_ambient.addContent(FormHelper.Header("Ambient"))
-    parameters_ambient.addContent(temperature)
-    parameters_ambient.addContent(vsweep_high)
-    parameters_ambient.addContent(vn_step)
-    parameters_ambient.node.content.style = { 'margin': '15px' }
-
-    parameters_ambient_tab = TeleportElement(MaterialContent(elementType="Tab"))  
-    parameters_ambient_tab.content.attrs["label"] = "Ambient"
-    parameters_ambient_tab.content.events["click"] = [
-      {
-        "type": "stateChange",
-        "modifies": "selected_tab",
-        "newState": 2
-      },
-    ]    
+    Tabs = FormHelper.Tabs(PNToySettingsComponent, {
+      "Structure" : [
+        FormHelper.Header("Structure"),
+        p_len,
+        p_node,
+        i_len,
+        i_node,
+        n_len,
+        n_node,    
+        Na,
+        Nd,
+      ],
+      "Materials" : [
+        FormHelper.Header("Materials"),
+        materialp,
+        FormHelper.Header("Minority carrier lifetime"),
+        taun,
+        taup,
+        FormHelper.Header("Impurities"),
+        impurity,
+        impurity_conditional,
+      ],
+      "Ambient" : [
+        FormHelper.Header("Ambient"),
+        temperature,
+        vsweep_high,
+        vn_step,
+      ],
+    }, "selected_tab")
     
-    PNToySettingsComponent.node.content.style = {
-      "height": "100vh"
-    }    
-    Tabs.addContent(parameters_structure_tab)
-    Tabs.addContent(parameters_materials_tab)
-    Tabs.addContent(parameters_ambient_tab)
-    AppBar.addContent(Tabs)
-    container.addContent(AppBar)
-    container.addContent(parameters_structure)
-    container.addContent(parameters_materials)
-    container.addContent(parameters_ambient)
-    PNToySettingsComponent.addNode(container)
+    PNToySettingsComponent.addNode(Tabs)
+    
     return PNToySettingsComponent    
+    
+  def onSimulate(tp, *args, **kwargs):
+    method_name = kwargs.get("method_name", "onSimulate")
+    toolname = kwargs.get("toolname", "")
+    url = kwargs.get("url", "")
+    
+    js = ""
+    js += "function " + method_name + "(self){"
+    js += "  window.sessionStorage.removeItem('output_xml');\n"
+    js += "  var params = JSON.parse(window.sessionStorage.getItem('nanohub_tool_schema'));"
+    js += "  var xmlDoc = JSON.parse(window.sessionStorage.getItem('nanohub_tool_xml'));"    
+    js += "  var state = self.state;"
+    js += "  if (window.DOMParser){"
+    js += "    parser = new DOMParser();"
+    js += "    xmlDoc = parser.parseFromString(xmlDoc, 'text/xml');"
+    js += "  } else {"
+    js += "    xmlDoc = new ActiveXObject('Microsoft.XMLDOM');"
+    js += "    xmlDoc.async = false;"
+    js += "    xmlDoc.loadXML(xmlDoc);"
+    js += "  }"    
+    js += "  var elems = xmlDoc.getElementsByTagName('*');\n"
+    js += "  var discardtags = ['phase', 'group', 'option'];\n";    
+    js += "  for (var i=0;i<elems.length;i++){\n"
+    js += "    var elem = elems[i];\n"
+    js += "    if (elem.tagName == 'structure'){\n"
+    js += "      var edefault = elem.querySelectorAll('default');\n"
+    js += "      if (edefault.length > 0){\n"
+    js += "        var params = edefault[0].querySelectorAll('parameters');\n"
+    js += "        if (params.length > 0){\n"
+    js += "          var current = xmlDoc.createElement('current');\n"
+    js += "          current.appendChild(params[0].cloneNode(true));\n"
+    js += "          elem.appendChild(current);\n"
+    js += "        }";
+    js += "      }";
+    js += "    }";
+    js += "  }\n";
+    js += "  for (const id in state) {\n";
+    js += "    let value = state[id];\n";
+    js += "    var elems = xmlDoc.getElementsByTagName('*');\n"
+    js += "    for (var i=0;i<elems.length;i++){\n";
+    js += "      var elem = elems[i];"
+    js += "      if (elem.hasAttribute('id')){"
+    js += "        if ((discardtags.findIndex((e)=> e == elem.tagName))<0){"
+    js += "          var id_xml = elem.getAttribute('id');"
+    js += "          if (id == id_xml){";
+    js += "            var current = elem.querySelectorAll('current');\n"
+    js += "            if (current.length > 0){\n"
+    js += "              elem.removeChild(current[0]);\n";
+    js += "            }\n";
+    js += "            current = xmlDoc.createElement('current');\n"
+    js += "            var units='';\n"
+    js += "            var units_node = elem.querySelectorAll('units');\n"
+    js += "            if (units_node.length > 0){\n"
+    js += "              units=units_node[0].textContent;\n"
+    js += "            }\n"
+    js += "            if (units != '' && !value.includes(units)){\n"
+    js += "              current.textContent = String(value)+units;\n"
+    js += "            } else {\n"
+    js += "              current.textContent = String(value);\n"
+    js += "            } \n"    
+    js += "            elem.appendChild(current);\n"        
+    js += "          }";
+    js += "        }";
+    js += "      }";
+    js += "    }";
+    js += "  }";
+    js += "  var elems = xmlDoc.getElementsByTagName('*');\n"
+    js += "  for (var i=0;i<elems.length;i++){\n"
+    js += "    var elem = elems[i];\n"
+    js += "    if (elem.hasAttribute('id')){\n"
+    js += "      var id = elem.getAttribute('id');\n"
+    js += "      if ((discardtags.findIndex((e)=> e == elem.tagName))<0){\n"
+    js += "        var current = elem.querySelectorAll('current');\n"
+    js += "        if (current.length > 0){\n"
+    js += "          var units='';\n"
+    js += "          var units_node = elem.querySelectorAll('units');\n"
+    js += "          if (units_node.length > 0){\n"
+    js += "            units=units_node[0].textContent;\n"
+    js += "          }\n"
+    js += "          var default_node = elem.querySelectorAll('default');\n"
+    js += "          if (default_node.length > 0){\n"
+    js += "            var defaultv = default_node[0].textContent;\n"
+    js += "            var current = elem.querySelectorAll('current');\n"
+    js += "            if (current.length > 0){\n"
+    js += "              elem.removeChild(current[0]);\n";
+    js += "            }\n"
+    js += "            current = xmlDoc.createElement('current');\n"
+    js += "            if (units != '' && !defaultv.includes(units)){\n"
+    js += "              current.textContent = defaultv+units;\n"
+    js += "            } else {\n"
+    js += "              current.textContent = defaultv;\n"
+    js += "            }\n"
+    js += "            elem.appendChild(current);\n"    
+    js += "          }\n"
+    js += "        }\n"
+    js += "      }\n"
+    js += "    }\n"
+    js += "  }\n"
+    js += "  var driver_str  = '<?xml version=\"1.0\"?>\\n' + new XMLSerializer().serializeToString(xmlDoc.documentElement);";
+    js += "  var driver_json = {'app': '" + toolname + "', 'xml': driver_str}\n";
+    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');\n"
+    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}\n";
+    js += "  var url = '" + url + "';";
+    js += "  str = [];\n"
+    js += "  for(var p in driver_json){\n"
+    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(driver_json[p]));\n"
+    js += "  }\n"
+    js += "  data =  str.join('&');\n"
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"    
+    js += "  Axios.request(url, options)\n"
+    js += "  .then(function(response){\n"
+    js += "    var session = response.data.session;\n"
+    #js += "    console.log(session);\n"      
+    js += "    setTimeout(function(){checkSession(session, true)},2000);\n"
+    js += "  }).catch(function(error){\n"
+    js += "    console.log(error);\n"      
+    js += "  })"
+    js += "}"
+    
+    js += "function checkSession(session_id, reload){"
+    js += "  var session_json = {'session_num': session_id};\n";
+    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');\n"
+    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}\n";
+    js += "  var url = 'https://nanohub.org/api/tools/status';";
+    js += "  str = [];\n"
+    js += "  for(var p in session_json){\n"
+    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(session_json[p]));\n"
+    js += "  }\n"
+    js += "  data =  str.join('&');\n"
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"    
+    js += "  Axios.request(url, options)\n"
+    js += "  .then(function(response){\n"
+    js += "    var status = response.data;\n"
+    js += "    if (status['success']){\n"
+    js += "      if (status['status']){\n"
+    js += "        if (status['status'].length > 0){\n"
+    js += "          console.log(status);\n"
+    js += "        }\n"
+    js += "        if(status['finished']){\n"
+    js += "          if(status['run_file'] != ''){\n"
+    js += "            loadResults(session_id, status['run_file']);\n"
+    js += "          } else {\n"
+    js += "            if (reload){\n"
+    js += "              setTimeout(function(){checkSession(session_id, false)},2000);\n"
+    js += "            }\n"
+    js += "          }\n"
+    js += "        } else {\n"
+    js += "          if (reload){\n"
+    js += "            setTimeout(function(){checkSession(session_id, reload)},2000);\n"
+    js += "          }\n"
+    js += "        }\n"
+    js += "      }"
+    js += "    }"
+    js += "  }).catch(function(error){\n"
+    js += "    console.log(error);\n"      
+    js += "  })"
+    js += "}"
+    
+    js += "function loadResults(session_id, run_file){"
+    js += "  var results_json = {'session_num': session_id, 'run_file': run_file};\n";
+    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');\n"
+    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}\n";
+    js += "  var url = 'https://nanohub.org/api/tools/output';";
+    js += "  str = [];\n"
+    js += "  for(var p in results_json){\n"
+    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(results_json[p]));\n"
+    js += "  }\n"
+    js += "  data =  str.join('&');\n"
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"    
+    js += "  Axios.request(url, options)\n"
+    js += "  .then(function(response){\n"
+    js += "    var data = response.data;\n"    
+    js += "    if(data.success){\n"    
+    js += "      var output = data.output;\n"    
+    js += "      window.sessionStorage.setItem('output_xml', JSON.stringify(output));"    
+    js += "    }\n"    
+    js += "  }).catch(function(error){\n"
+    js += "    console.log(error);\n"      
+    js += "  })"
+    js += "}"
+                   
+               
+
+
+
+    tp.globals.assets.append({
+      "type": "script",
+      "content": js
+    })
+    
+    return [
+      {
+        "type": "propCall",
+        "calls": method_name,
+        "args": ['self']
+      }
+    ] 
+
+
+  def plotXY(tp, *args, **kwargs): 
+    RapptureBuilder.buildXYPlotly(tp, method_name="buildXYPlotly")
+    method_name = kwargs.get("method_name", "plotSequence")
+    url = kwargs.get("url", "")    
+    eol = "\n"
+    js = ""
+    js += "function " + method_name + "( sequence ){" + eol
+    js += "  var plt = buildXYPlotly(sequence);" + eol
+    js += "  var tr = plt['traces'];" + eol
+    js += "  var ly = plt['layout'];" + eol    
+    js += "  var layout = {" + eol    
+    js += "    'title' : ly['title']," + eol    
+    js += "    'xaxis' : {" + eol    
+    js += "      'title' : ly['xaxis']['title']," + eol    
+    js += "      'type' : ly['xaxis']['type']," + eol    
+    js += "      'autorange' : true," + eol    
+    js += "    }," + eol    
+    js += "    'yaxis' : {" + eol    
+    js += "      'title' : ly['yaxis']['title']," + eol    
+    js += "      'type' : ly['yaxis']['type']," + eol    
+    js += "      'autorange' : true," + eol    
+    js += "    }" + eol    
+    js += "  };" + eol
+    js += "  return {'data':tr, 'frames':[], 'layout':layout}" + eol
+    js += "}" + eol
+
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+    
+  def plotSequence(tp, *args, **kwargs): 
+    RapptureBuilder.buildXYPlotly(tp, method_name="buildXYPlotly")
+    method_name = kwargs.get("method_name", "plotSequence")
+    url = kwargs.get("url", "")    
+    eol = "\n"
+    js = ""
+    js += "function " + method_name + "( sequence ){" + eol
+    js += "  var elements = sequence.getElementsByTagName('element');" + eol
+    js += "  var label = 'TODO';" + eol
+    js += "  var min_tr_x = undefined;" + eol
+    js += "  var min_tr_y = undefined;" + eol
+    js += "  var max_tr_x = undefined;" + eol
+    js += "  var max_tr_y = undefined;" + eol
+    js += "  var traces = [];" + eol
+    js += "  var layout = {};" + eol
+    js += "  var frames = {};" + eol    
+    js += "  var options = [];" + eol        
+    js += "  for (var i=0;i<elements.length;i++){" + eol
+    js += "    var seq = elements[i];" + eol
+    js += "    var index = seq.querySelectorAll('index');" + eol
+    js += "    if (index.length>0 && index[0].innerHTML != ''){" + eol
+    js += "      index = index[0].innerHTML;" + eol ####CONTINUE HERE......
+    js += "      var curves = seq.getElementsByTagName('curve');" + eol
+    js += "      var plt = buildXYPlotly(curves);" + eol
+    js += "      var tr = plt['traces'];" + eol
+    js += "      var lay = plt['layout'];" + eol
+    js += "      for (t=0; t<tr.length;t++){" + eol
+    js += "        var minx, maxx;" + eol
+    js += "        try {" + eol
+    js += "          if (lay['xaxis']['type'] == 'log'){" + eol
+    js += "            minx = Math.min.apply(null, tr[t].filter((function(el){ return el > 0 })));" + eol
+    js += "            maxx = Math.max.apply(null, tr[t].filter((function(el){ return el > 0 })));" + eol
+    js += "          } else {" + eol
+    js += "            minx = Math.min.apply(null, tr[t]);" + eol
+    js += "            maxx = Math.max.apply(null, tr[t]);" + eol
+    js += "          }" + eol
+    js += "          if (min_tr_x ==undefined || min_tr_x > minx){" + eol
+    js += "            min_tr_x = minx;" + eol
+    js += "          }" + eol
+    js += "          if (max_tr_x ==undefined || max_tr_x < maxx){" + eol
+    js += "            max_tr_x = maxx;" + eol
+    js += "          }" + eol
+    js += "        } catch(error){}" + eol
+    js += "        var miny, maxy;" + eol
+    js += "        try {" + eol
+    js += "          if (lay['yaxis']['type'] == 'log'){" + eol
+    js += "            miny = Math.min.apply(null, tr[t].filter((function(el){ return el > 0 })));" + eol
+    js += "            maxy = Math.max.apply(null, tr[t].filter((function(el){ return el > 0 })));" + eol
+    js += "          } else {" + eol
+    js += "            miny = Math.min.apply(null, tr[t]);" + eol
+    js += "            maxy = Math.max.apply(null, tr[t]);" + eol
+    js += "          }" + eol
+    js += "          if (min_tr_y ==undefined || min_tr_y > miny){" + eol
+    js += "            min_tr_y = minx;" + eol
+    js += "          }" + eol
+    js += "          if (max_tr_y ==undefined || max_tr_y < maxy){" + eol
+    js += "            max_tr_y = maxy;" + eol
+    js += "          }" + eol
+    js += "        } catch(error){}" + eol
+    js += "      }" + eol
+    js += "      if (traces.length == 0){" + eol
+    js += "        layout = lay;" + eol
+    js += "        traces = tr.slice(0);" + eol #clone
+    js += "      }" + eol
+    js += "      if (index in frames){" + eol
+    js += "        frames[index].push(...tr.slice(0));" + eol
+    js += "      } else {" + eol
+    js += "        options.push(index);" + eol
+    js += "        frames[index] = tr.slice(0);" + eol
+    js += "      }" + eol
+    js += "    }" + eol
+    js += "  }" + eol
+    js += "  var frms = [];" + eol
+    
+    js += "  layout['sliders'] = [{" + eol
+    js += "    'pad': {t: 30}," + eol
+    js += "    'x': 0.05," + eol
+    js += "    'len': 0.95," + eol
+    js += "    'currentvalue': {" + eol
+    js += "      'xanchor': 'right'," + eol
+    js += "      'prefix': ''," + eol
+    js += "      'font': {" + eol
+    js += "        'color': '#888'," + eol
+    js += "        'size': 20" + eol
+    js += "      }" + eol
+    js += "    }," + eol
+    js += "    'transition': {'duration': 100}," + eol
+    js += "    'steps': []," + eol
+    js += "  }];" + eol    
+
+    js += "  Object.entries(frames).forEach(entry=>{" + eol
+    js += "     var key = entry[0];" + eol
+    js += "     var value = entry[1];" + eol
+    js += "     frms.push({" + eol
+    js += "       'name' : key," + eol
+    js += "       'data' : value" + eol
+    js += "     });" + eol
+    js += "  });" + eol
+
+    js += "  for(var f=0;f<frms.length;f++){" + eol
+    js += "    layout['sliders'][0]['steps'].push({" + eol
+    js += "      label : frms[f]['name']," + eol
+    js += "      method : 'animate'," + eol
+    js += "      args : [[frms[f]['name']], {" + eol
+    js += "        mode: 'immediate'," + eol
+    js += "        'frame' : 'transition'," + eol
+    js += "        'transition' : {duration: 100}," + eol
+    js += "      }]" + eol
+    js += "    });" + eol
+    js += "  }" + eol
+    
+    js += "  layout['updatemenus'] = [{" + eol
+    js += "    type: 'buttons'," + eol
+    js += "    showactive: false," + eol
+    js += "    x: 0.05," + eol
+    js += "    y: 0," + eol
+    js += "    xanchor: 'right'," + eol
+    js += "    yanchor: 'top'," + eol
+    js += "    pad: {t: 60, r: 20}," + eol
+    js += "    buttons: [{" + eol
+    js += "      label: 'Play'," + eol
+    js += "      method: 'animate'," + eol
+    js += "      args: [null, {" + eol
+    js += "        fromcurrent: true," + eol
+    js += "        frame: {redraw: false, duration: 500}," + eol
+    js += "        transition: {duration: 100}" + eol
+    js += "      }]" + eol
+    #js += "    },{" + eol
+    #js += "      label: 'Pause'," + eol
+    #js += "      method: 'animate'," + eol
+    #js += "      args: [[null], {" + eol    
+    #js += "        mode: 'immediate'," + eol
+    #js += "        frame: {redraw: false, duration: 0}" + eol
+    #js += "      }]" + eol
+    js += "    }]" + eol
+    js += "  }];" + eol    
+    js += "  return {'data':traces, 'frames':frms, 'layout':layout}" + eol
+    js += "}" + eol
+
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+
+
+  def loadSequence(tp, *args, **kwargs):   
+    eol = "\n";
+    plotSequence = kwargs.get("plotSequence", "plotSequence")
+    PNToyBuilder.plotSequence(tp, method_name=plotSequence)
+    method_name = kwargs.get("method_name", "loadSequence")
+    url = kwargs.get("url", "")    
+    js = ""
+    js += "function " + method_name + "(self, seq){" + eol
+    js += "  var xmlDoc = JSON.parse(window.sessionStorage.getItem('output_xml'));" + eol
+    js += "  var state = self.state;" + eol
+    js += "  if (window.DOMParser){" + eol
+    js += "    parser = new DOMParser();" + eol
+    js += "    xmlDoc = parser.parseFromString(xmlDoc, 'text/xml');" + eol
+    js += "  } else {" + eol
+    js += "    xmlDoc = new ActiveXObject('Microsoft.XMLDOM');" + eol
+    js += "    xmlDoc.async = false;" + eol
+    js += "    xmlDoc.loadXML(xmlDoc);" + eol
+    js += "  }" + eol
+    js += "  var sequences = xmlDoc.getElementsByTagName('sequence');" + eol
+    js += "  for (var i=0;i<sequences.length;i++){" + eol
+    js += "    var sequence = sequences[i];" + eol
+    js += "    if (sequence.hasAttribute('id') && sequence.getAttribute('id') == seq){" + eol
+    js += "      plt = " + plotSequence + "(sequence);" + eol
+    js += "      self.setState({" + eol
+    js += "        'data': plt['data']," + eol
+    js += "        'layout': plt['layout']," + eol
+    js += "        'frames': plt['frames']" + eol
+    js += "      });" + eol
+    js += "    }" + eol
+    js += "  }" + eol
+    js += "}" + eol
+    
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+    
+    return {
+      "type": "propCall",
+      "calls": method_name,
+      "args": ['self']
+    }
+    
+    
+  def loadXY(tp, *args, **kwargs):   
+    eol = "\n";
+    plotXY = kwargs.get("plotXY", "plotXY")
+    PNToyBuilder.plotXY(tp, method_name=plotXY)
+    method_name = kwargs.get("method_name", "loadXy")
+    url = kwargs.get("url", "")    
+    js = ""
+    js += "function " + method_name + "(self, seq){" + eol
+    js += "  var xmlDoc = JSON.parse(window.sessionStorage.getItem('output_xml'));" + eol
+    js += "  var state = self.state;" + eol
+    js += "  if (window.DOMParser){" + eol
+    js += "    parser = new DOMParser();" + eol
+    js += "    xmlDoc = parser.parseFromString(xmlDoc, 'text/xml');" + eol
+    js += "  } else {" + eol
+    js += "    xmlDoc = new ActiveXObject('Microsoft.XMLDOM');" + eol
+    js += "    xmlDoc.async = false;" + eol
+    js += "    xmlDoc.loadXML(xmlDoc);" + eol
+    js += "  }" + eol
+    js += "  var sequences = xmlDoc.getElementsByTagName('curve');" + eol
+    js += "  for (var i=0;i<sequences.length;i++){" + eol
+    js += "    var sequence = sequences[i];" + eol
+    js += "    if (sequence.hasAttribute('id') && sequence.getAttribute('id') == seq){" + eol
+    js += "      plt = " + plotXY + "([sequence]);" + eol
+    js += "      self.setState({" + eol
+    js += "        'data': plt['data']," + eol
+    js += "        'layout': plt['layout']," + eol
+    js += "        'frames': plt['frames']" + eol
+    js += "      });" + eol
+    js += "    }" + eol
+    js += "  }" + eol
+    js += "}" + eol
+    
+    tp.globals.addAsset(method_name, {
+      "type": "script",
+      "content": js
+    })
+    
+    return {
+      "type": "propCall",
+      "calls": method_name,
+      "args": ['self']
+    }
+    
+  def loadBandStructure(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadBandStructure")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's1');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, {"type": "script","content": js})    
+    return { "type": "propCall", "calls": method_name,"args": ['self']}
+
+  def loadIV(tp, *args, **kwargs):   
+    eol = "\n";
+    loadXY = kwargs.get("loadXY", "loadXY")    
+    PNToyBuilder.loadXY(tp, method_name="loadXY")
+    method_name = kwargs.get("method_name", "loadIV")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadXY + "(self, 'iv');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, {"type": "script","content": js})    
+    return { "type": "propCall", "calls": method_name,"args": ['self']}
+    
+  def loadCV(tp, *args, **kwargs):   
+    eol = "\n";
+    loadXY = kwargs.get("loadXY", "loadXY")    
+    PNToyBuilder.loadXY(tp, method_name="loadXY")
+    method_name = kwargs.get("method_name", "loadCV")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadXY + "(self, 'cap');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, {"type": "script","content": js})    
+    return { "type": "propCall", "calls": method_name,"args": ['self']}
+
+  def loadTotalCurrent(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadTotalCurrent")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's0');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+
+  def loadTotalDensity(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadTotalDensity")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's2');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+
+  def loadChargeDensity(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadChargeDensity")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's4');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+ 
+  def loadPotential(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadPotential")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's5');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+ 
+  def loadField(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadField")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's6');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+ 
+  def loadRecombination(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadRecombination")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's7');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+ 
+  def loadCarrier(tp, *args, **kwargs):   
+    eol = "\n";
+    loadSequence = kwargs.get("loadSequence", "loadSequence")    
+    PNToyBuilder.loadSequence(tp, method_name="loadSequence")
+    method_name = kwargs.get("method_name", "loadCarrier")
+    js = ""
+    js += "function " + method_name + "(self){" + eol
+    js += "  " + loadSequence + "(self, 's3');" + eol
+    js += "}" + eol    
+    tp.globals.addAsset(method_name, { "type": "script", "content": js })    
+    return { "type": "propCall", "calls": method_name,"args": ['self'] }    
+ 
     
   def PNToySettings(tp, *args, **kwargs):
     if ("PNToySettingsComponent" not in tp.components):
@@ -1381,14 +2283,14 @@ class PNToyBuilder():
       tp.globals.assets.append({
         "type": "script",
         "content": js
-      })      
-
-
+      })   
+      runSimulation = PNToyBuilder.onSimulate(tp, method_name="onSimulate", toolname="pntoy", url=kwargs.get("url", None))
+      tp.components["PNToySettingsComponent"].addPropVariable("onSimulate", {"type":"func"})    
+      tp.components["PNToySettingsComponent"].node.addContent(MaterialBuilder.Button(title = "Simulate", onClickButton=runSimulation))
+      
       
     ContainerPlot = TeleportElement(TeleportContent(elementType="container"))
-    ContainerPlot.content.style = {
-      "height": "100vh"
-    }
+
         
     PNToySettings = TeleportElement(TeleportContent(elementType="PNToySettingsComponent"))
     if kwargs.get("data", None) is not None:
