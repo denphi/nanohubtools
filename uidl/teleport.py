@@ -1680,187 +1680,186 @@ class PNToyBuilder():
     
   def onSimulate(tp, *args, **kwargs):
     method_name = kwargs.get("method_name", "onSimulate")
+    eol = "\n"
     toolname = kwargs.get("toolname", "")
     url = kwargs.get("url", "")
     
     js = ""
-    js += "function " + method_name + "(self){"
-    js += "  window.sessionStorage.removeItem('output_xml');\n"
-    js += "  var params = JSON.parse(window.sessionStorage.getItem('nanohub_tool_schema'));"
-    js += "  var xmlDoc = JSON.parse(window.sessionStorage.getItem('nanohub_tool_xml'));"    
-    js += "  var state = self.state;"
-    js += "  if (window.DOMParser){"
-    js += "    parser = new DOMParser();"
-    js += "    xmlDoc = parser.parseFromString(xmlDoc, 'text/xml');"
-    js += "  } else {"
-    js += "    xmlDoc = new ActiveXObject('Microsoft.XMLDOM');"
-    js += "    xmlDoc.async = false;"
-    js += "    xmlDoc.loadXML(xmlDoc);"
-    js += "  }"    
-    js += "  var elems = xmlDoc.getElementsByTagName('*');\n"
-    js += "  var discardtags = ['phase', 'group', 'option'];\n";    
-    js += "  for (var i=0;i<elems.length;i++){\n"
-    js += "    var elem = elems[i];\n"
-    js += "    if (elem.tagName == 'structure'){\n"
-    js += "      var edefault = elem.querySelectorAll('default');\n"
-    js += "      if (edefault.length > 0){\n"
-    js += "        var params = edefault[0].querySelectorAll('parameters');\n"
-    js += "        if (params.length > 0){\n"
-    js += "          var current = xmlDoc.createElement('current');\n"
-    js += "          current.appendChild(params[0].cloneNode(true));\n"
-    js += "          elem.appendChild(current);\n"
-    js += "        }";
-    js += "      }";
-    js += "    }";
-    js += "  }\n";
-    js += "  for (const id in state) {\n";
-    js += "    let value = state[id];\n";
-    js += "    var elems = xmlDoc.getElementsByTagName('*');\n"
-    js += "    for (var i=0;i<elems.length;i++){\n";
-    js += "      var elem = elems[i];"
-    js += "      if (elem.hasAttribute('id')){"
-    js += "        if ((discardtags.findIndex((e)=> e == elem.tagName))<0){"
-    js += "          var id_xml = elem.getAttribute('id');"
-    js += "          if (id == id_xml){";
-    js += "            var current = elem.querySelectorAll('current');\n"
-    js += "            if (current.length > 0){\n"
-    js += "              elem.removeChild(current[0]);\n";
-    js += "            }\n";
-    js += "            current = xmlDoc.createElement('current');\n"
-    js += "            var units='';\n"
-    js += "            var units_node = elem.querySelectorAll('units');\n"
-    js += "            if (units_node.length > 0){\n"
-    js += "              units=units_node[0].textContent;\n"
-    js += "            }\n"
-    js += "            if (units != '' && !value.includes(units)){\n"
-    js += "              current.textContent = String(value)+units;\n"
-    js += "            } else {\n"
-    js += "              current.textContent = String(value);\n"
-    js += "            } \n"    
-    js += "            elem.appendChild(current);\n"        
-    js += "          }";
-    js += "        }";
-    js += "      }";
-    js += "    }";
-    js += "  }";
-    js += "  var elems = xmlDoc.getElementsByTagName('*');\n"
-    js += "  for (var i=0;i<elems.length;i++){\n"
-    js += "    var elem = elems[i];\n"
-    js += "    if (elem.hasAttribute('id')){\n"
-    js += "      var id = elem.getAttribute('id');\n"
-    js += "      if ((discardtags.findIndex((e)=> e == elem.tagName))<0){\n"
-    js += "        var current = elem.querySelectorAll('current');\n"
-    js += "        if (current.length > 0){\n"
-    js += "          var units='';\n"
-    js += "          var units_node = elem.querySelectorAll('units');\n"
-    js += "          if (units_node.length > 0){\n"
-    js += "            units=units_node[0].textContent;\n"
-    js += "          }\n"
-    js += "          var default_node = elem.querySelectorAll('default');\n"
-    js += "          if (default_node.length > 0){\n"
-    js += "            var defaultv = default_node[0].textContent;\n"
-    js += "            var current = elem.querySelectorAll('current');\n"
-    js += "            if (current.length > 0){\n"
-    js += "              elem.removeChild(current[0]);\n";
-    js += "            }\n"
-    js += "            current = xmlDoc.createElement('current');\n"
-    js += "            if (units != '' && !defaultv.includes(units)){\n"
-    js += "              current.textContent = defaultv+units;\n"
-    js += "            } else {\n"
-    js += "              current.textContent = defaultv;\n"
-    js += "            }\n"
-    js += "            elem.appendChild(current);\n"    
-    js += "          }\n"
-    js += "        }\n"
-    js += "      }\n"
-    js += "    }\n"
-    js += "  }\n"
-    js += "  var driver_str  = '<?xml version=\"1.0\"?>\\n' + new XMLSerializer().serializeToString(xmlDoc.documentElement);";
-    js += "  var driver_json = {'app': '" + toolname + "', 'xml': driver_str}\n";
-    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');\n"
-    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}\n";
+    js += "function " + method_name + "(self){" + eol
+    js += "  window.sessionStorage.removeItem('output_xml');" + eol
+    js += "  var params = JSON.parse(window.sessionStorage.getItem('nanohub_tool_schema'));" + eol
+    js += "  var xmlDoc = JSON.parse(window.sessionStorage.getItem('nanohub_tool_xml'));" + eol
+    js += "  var state = self.state;" + eol
+    js += "  if (window.DOMParser){" + eol
+    js += "    parser = new DOMParser();" + eol
+    js += "    xmlDoc = parser.parseFromString(xmlDoc, 'text/xml');" + eol
+    js += "  } else {" + eol
+    js += "    xmlDoc = new ActiveXObject('Microsoft.XMLDOM');" + eol
+    js += "    xmlDoc.async = false;" + eol
+    js += "    xmlDoc.loadXML(xmlDoc);" + eol
+    js += "  }" + eol
+    js += "  var elems = xmlDoc.getElementsByTagName('*');" + eol
+    js += "  var discardtags = ['phase', 'group', 'option'];" + eol
+    js += "  for (var i=0;i<elems.length;i++){" + eol
+    js += "    var elem = elems[i];" + eol
+    js += "    if (elem.tagName == 'structure'){" + eol
+    js += "      var edefault = elem.querySelectorAll('default');" + eol
+    js += "      if (edefault.length > 0){" + eol
+    js += "        var params = edefault[0].querySelectorAll('parameters');" + eol
+    js += "        if (params.length > 0){" + eol
+    js += "          var current = xmlDoc.createElement('current');" + eol
+    js += "          current.appendChild(params[0].cloneNode(true));" + eol
+    js += "          elem.appendChild(current);" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "    }" + eol
+    js += "  }" + eol;
+    #Seting default values as current
+    js += "  var elems = xmlDoc.getElementsByTagName('*');" + eol
+    js += "  for (var i=0;i<elems.length;i++){" + eol
+    js += "    var elem = elems[i];" + eol
+    js += "    if (elem.hasAttribute('id')){" + eol
+    js += "      var id = elem.getAttribute('id');" + eol
+    js += "      if ((discardtags.findIndex((e)=> e == elem.tagName))<0){" + eol
+    js += "        var current = elem.querySelectorAll('current');" + eol
+    js += "        if (current.length > 0){" + eol
+    js += "          var units='';" + eol
+    js += "          var units_node = elem.querySelectorAll('units');" + eol
+    js += "          if (units_node.length > 0){" + eol
+    js += "            units=units_node[0].textContent;" + eol
+    js += "          }" + eol
+    js += "          var default_node = elem.querySelectorAll('default');" + eol
+    js += "          if (default_node.length > 0){" + eol
+    js += "            var defaultv = default_node[0].textContent;" + eol
+    js += "            var current = elem.querySelectorAll('current');" + eol
+    js += "            if (current.length > 0){" + eol
+    js += "              elem.removeChild(current[0]);" + eol;
+    js += "            }" + eol
+    js += "            current = xmlDoc.createElement('current');" + eol
+    js += "            if (units != '' && !defaultv.includes(units)){" + eol
+    js += "              current.textContent = defaultv+units;" + eol
+    js += "            } else {" + eol
+    js += "              current.textContent = defaultv;" + eol
+    js += "            }" + eol
+    js += "            elem.appendChild(current);" + eol    
+    js += "          }" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "    }" + eol
+    js += "  }" + eol
+    #Seting state values as current
+    js += "  for (const id in state) {" + eol;
+    js += "    let value = state[id];" + eol;
+    js += "    var elems = xmlDoc.getElementsByTagName('*');" + eol
+    js += "    for (var i=0;i<elems.length;i++){" + eol;
+    js += "      var elem = elems[i];" + eol
+    js += "      if (elem.hasAttribute('id')){" + eol
+    js += "        if ((discardtags.findIndex((e)=> e == elem.tagName))<0){" + eol
+    js += "          var id_xml = elem.getAttribute('id');" + eol
+    js += "          if (id == id_xml){" + eol
+    js += "            var current = elem.querySelectorAll('current');" + eol
+    js += "            if (current.length > 0){" + eol
+    js += "              elem.removeChild(current[0]);" + eol
+    js += "            }" + eol
+    js += "            current = xmlDoc.createElement('current');" + eol
+    js += "            var units='';" + eol
+    js += "            var units_node = elem.querySelectorAll('units');" + eol
+    js += "            if (units_node.length > 0){" + eol
+    js += "              units=units_node[0].textContent;" + eol
+    js += "            }" + eol
+    js += "            if (units != '' && !value.includes(units)){" + eol
+    js += "              current.textContent = String(value)+units;" + eol
+    js += "            } else {" + eol
+    js += "              current.textContent = String(value);" + eol
+    js += "            } " + eol    
+    js += "            elem.appendChild(current);" + eol    
+    js += "          }" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "    }" + eol
+    js += "  }" + eol
+    js += "  var driver_str  = '<?xml version=\"1.0\"?>\\n' + new XMLSerializer().serializeToString(xmlDoc.documentElement);" + eol
+    js += "  var driver_json = {'app': '" + toolname + "', 'xml': driver_str}" + eol;
+    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');" + eol
+    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}" + eol;
     js += "  var url = '" + url + "';";
-    js += "  str = [];\n"
-    js += "  for(var p in driver_json){\n"
-    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(driver_json[p]));\n"
-    js += "  }\n"
-    js += "  data =  str.join('&');\n"
-    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"    
-    js += "  Axios.request(url, options)\n"
-    js += "  .then(function(response){\n"
-    js += "    var session = response.data.session;\n"
-    #js += "    console.log(session);\n"      
-    js += "    setTimeout(function(){checkSession(session, true)},2000);\n"
-    js += "  }).catch(function(error){\n"
-    js += "    console.log(error);\n"      
-    js += "  })"
-    js += "}"
+    js += "  str = [];" + eol
+    js += "  for(var p in driver_json){" + eol
+    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(driver_json[p]));" + eol
+    js += "  }" + eol
+    js += "  data =  str.join('&');" + eol
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };" + eol
+    js += "  Axios.request(url, options)" + eol
+    js += "  .then(function(response){" + eol
+    js += "    var session = response.data.session;" + eol
+    #js += "    console.log(session);" + eol      
+    js += "    setTimeout(function(){checkSession(session, true)},4000);" + eol
+    js += "  }).catch(function(error){" + eol
+    js += "    console.log(error);" + eol      
+    js += "  })" + eol
+    js += "}" + eol
     
-    js += "function checkSession(session_id, reload){"
-    js += "  var session_json = {'session_num': session_id};\n";
-    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');\n"
-    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}\n";
-    js += "  var url = 'https://nanohub.org/api/tools/status';";
-    js += "  str = [];\n"
-    js += "  for(var p in session_json){\n"
-    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(session_json[p]));\n"
-    js += "  }\n"
-    js += "  data =  str.join('&');\n"
-    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"    
-    js += "  Axios.request(url, options)\n"
-    js += "  .then(function(response){\n"
-    js += "    var status = response.data;\n"
-    js += "    if (status['success']){\n"
-    js += "      if (status['status']){\n"
-    js += "        if (status['status'].length > 0){\n"
-    js += "          console.log(status);\n"
-    js += "        }\n"
-    js += "        if(status['finished']){\n"
-    js += "          if(status['run_file'] != ''){\n"
-    js += "            loadResults(session_id, status['run_file']);\n"
-    js += "          } else {\n"
-    js += "            if (reload){\n"
-    js += "              setTimeout(function(){checkSession(session_id, false)},2000);\n"
-    js += "            }\n"
-    js += "          }\n"
-    js += "        } else {\n"
-    js += "          if (reload){\n"
-    js += "            setTimeout(function(){checkSession(session_id, reload)},2000);\n"
-    js += "          }\n"
-    js += "        }\n"
+    js += "function checkSession(session_id, reload){" + eol
+    js += "  var session_json = {'session_num': session_id};" + eol;
+    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');" + eol
+    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}" + eol;
+    js += "  var url = 'https://nanohub.org/api/tools/status';" + eol
+    js += "  str = [];" + eol
+    js += "  for(var p in session_json){" + eol
+    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(session_json[p]));" + eol
+    js += "  }" + eol
+    js += "  data =  str.join('&');" + eol
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };" + eol    
+    js += "  Axios.request(url, options)" + eol
+    js += "  .then(function(response){" + eol
+    js += "    var status = response.data;" + eol
+    js += "    if (status['success']){" + eol
+    js += "      if (status['status']){" + eol
+    #js += "        if (status['status'].length > 0){" + eol
+    #js += "          console.log(status);" + eol
+    #js += "        }" + eol
+    js += "        if(status['finished']){" + eol
+    js += "          if(status['run_file'] != ''){" + eol
+    js += "            loadResults(session_id, status['run_file']);" + eol
+    js += "          } else {" + eol
+    js += "            if (reload){" + eol
+    js += "              setTimeout(function(){checkSession(session_id, false)},2000);" + eol
+    js += "            }" + eol
+    js += "          }" + eol
+    js += "        } else {" + eol
+    js += "          if (reload){" + eol
+    js += "            setTimeout(function(){checkSession(session_id, reload)},2000);" + eol
+    js += "          }" + eol
+    js += "        }" + eol
     js += "      }"
     js += "    }"
-    js += "  }).catch(function(error){\n"
-    js += "    console.log(error);\n"      
+    js += "  }).catch(function(error){" + eol
+    js += "    console.log(error);" + eol      
     js += "  })"
     js += "}"
     
-    js += "function loadResults(session_id, run_file){"
-    js += "  var results_json = {'session_num': session_id, 'run_file': run_file};\n";
-    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');\n"
-    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}\n";
-    js += "  var url = 'https://nanohub.org/api/tools/output';";
-    js += "  str = [];\n"
-    js += "  for(var p in results_json){\n"
-    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(results_json[p]));\n"
-    js += "  }\n"
-    js += "  data =  str.join('&');\n"
-    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };\n"    
-    js += "  Axios.request(url, options)\n"
-    js += "  .then(function(response){\n"
-    js += "    var data = response.data;\n"    
-    js += "    if(data.success){\n"    
-    js += "      var output = data.output;\n"    
-    js += "      window.sessionStorage.setItem('output_xml', JSON.stringify(output));"    
-    js += "    }\n"    
-    js += "  }).catch(function(error){\n"
-    js += "    console.log(error);\n"      
-    js += "  })"
-    js += "}"
-                   
-               
-
-
+    js += "function loadResults(session_id, run_file){" + eol
+    js += "  var results_json = {'session_num': session_id, 'run_file': run_file};" + eol;
+    js += "  var nanohub_token = window.sessionStorage.getItem('nanohub_token');" + eol
+    js += "  var header_token = {'Authorization': 'Bearer ' + nanohub_token}" + eol;
+    js += "  var url = 'https://nanohub.org/api/tools/output';" + eol
+    js += "  str = [];" + eol
+    js += "  for(var p in results_json){" + eol
+    js += "    str.push(encodeURIComponent(p) + '=' + encodeURIComponent(results_json[p]));" + eol
+    js += "  }" + eol
+    js += "  data =  str.join('&');" + eol
+    js += "  var options = { 'handleAs' : 'json' , 'headers' : header_token, 'method' : 'POST', 'data' : data };" + eol
+    js += "  Axios.request(url, options)" + eol
+    js += "  .then(function(response){" + eol
+    js += "    var data = response.data;" + eol    
+    js += "    if(data.success){" + eol    
+    js += "      var output = data.output;" + eol    
+    js += "      window.sessionStorage.setItem('output_xml', JSON.stringify(output));" + eol
+    js += "    }" + eol    
+    js += "  }).catch(function(error){" + eol
+    js += "    console.log(error);" + eol
+    js += "  })" + eol
+    js += "}" + eol
 
     tp.globals.assets.append({
       "type": "script",
