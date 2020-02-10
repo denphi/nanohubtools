@@ -743,7 +743,6 @@ class MaterialBuilder():
 
     """  
     ExpansionPanel = TeleportElement(MaterialContent(elementType="ExpansionPanel"))
-    print (kwargs.get("disabled", False));
     if kwargs.get("disabled", False) is True:
         ExpansionPanel.content.attrs["disabled"] = True
     if kwargs.get("expanded", None) is not None:
