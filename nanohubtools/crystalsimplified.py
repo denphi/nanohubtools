@@ -25,6 +25,8 @@ from numpy import linalg as nplinalg
 from numpy import cross as npcross
 from numpy import ceil as npceil
 from numpy import around as nparound
+from numpy import dot as npdot
+
 
 class InstanceTracker(object):
     __instances__ = weakref.WeakValueDictionary()

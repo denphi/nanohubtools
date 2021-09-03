@@ -40,6 +40,7 @@ from numpy import mgrid as npmgrid
 from numpy import random as nprandom
 from numpy import linalg as nplinalg
 from numpy import cross as npcross
+from numpy import dot as npdot
 import xml.etree.ElementTree as ET
 from threading import Lock
 import math
