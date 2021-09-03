@@ -318,8 +318,8 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         header_js = '''
             requirejs.config({
                 paths: {
-                    'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                    'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
                 }
             });
 
@@ -450,8 +450,8 @@ class PNToySimplified (InstanceTracker, Rappturetool):
         parameter_component_js = '''
         requirejs.config({
             paths: {
-                'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
             }
         });
 
@@ -650,18 +650,18 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                 text = sequence.attrib['id']
                 if text != "":
                     lists[text] = sequence
-        return lists;
+        return lists;                
 
-        
+
     def getCache(self):
         parameters = self.getCurrentParameters( )
-        hashstr =  json.dumps(parameters, sort_keys=True).encode()        
+        hashstr =  json.dumps(parameters, sort_keys=True).encode()
         hashitem = hashlib.sha1(hashstr).hexdigest()
         if self.hashitem != hashitem:
             xml = self.loadCache(parameters, hashitem)
             self.xml = xml
             results = xml.find('output')
-            sequences = self.getSequences(results.findall('sequence')) 
+            sequences = self.getSequences(results.findall('sequence'))
             self.band = sequences.get("s1", None)
             self.current = sequences.get("s0", None)
             self.density = sequences.get("s2", None)
@@ -670,10 +670,21 @@ class PNToySimplified (InstanceTracker, Rappturetool):
             self.potential = sequences.get("s5", None)
             self.field = sequences.get("s6", None)
             self.recombination = sequences.get("s7", None)
-            curves = self.getSequences(results.findall('curve')) 
+            curves = self.getSequences(results.findall('curve'))
             self.cv = curves.get("cap", None)
             self.iv = curves.get("iv", None)
-            
+            ro_ddaq = curves.get("ro_ddaq", None)
+            if ro_ddaq is not None: 
+                ro_ddaq.find('about').find('group').text = "Net Charge Density (at applied bias)"
+                if ro_ddaq.find('about').find('style') is None:
+                    ET.SubElement(ro_ddaq.find('about'),'style')
+                ro_ddaq.find('about').find('style').text = "-color red -linestyle dashed"
+                els = self.net.findall('element')
+                for i,el in enumerate(els):
+                    if (i == 0):
+                        el.append(ro_ddaq)
+                    else:
+                        el.append(ET.fromstring('<curve id="ro_ddaq"><about><label></label><group>Net Charge Density (at applied bias)</group></about><component><xy>0 0</xy></component></curve>'))
             self.history[hashitem] = {
                 "band": self.band,
                 "current": self.current,
@@ -687,14 +698,11 @@ class PNToySimplified (InstanceTracker, Rappturetool):
                 "iv": self.iv,
                 "timestamp" : datetime.now().timestamp(),
                 "parameters" : parameters
-            }            
-            
+            }
+
         with self.content_component_output:
-            clear_output()  
-        self.hashitem = hashitem                    
-
-
-
+            clear_output()
+        self.hashitem = hashitem   
 
 
     def exposedDisplay(self, option):

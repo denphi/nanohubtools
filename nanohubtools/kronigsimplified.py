@@ -464,8 +464,8 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         header_js = '''
             requirejs.config({
                 paths: {
-                    'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                    'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
                 }
             });
 
@@ -673,8 +673,8 @@ class PeriodicPotentialLabSimplified (InstanceTracker, Rappturetool):
         parameter_component_js = '''
         requirejs.config({
             paths: {
-                'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
             }
         });
 

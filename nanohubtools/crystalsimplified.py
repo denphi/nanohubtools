@@ -782,8 +782,8 @@ class CrystalLab (InstanceTracker):
         options_js = '''
             requirejs.config({
                 paths: {
-                    'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                    'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                    'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
                 }
             });
 
@@ -1102,8 +1102,8 @@ class CrystalViewerSimplified (CrystalSimplified):
         crystal_component_js = '''
         requirejs.config({
             paths: {
-                'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
             }
         });
 
@@ -1479,8 +1479,8 @@ class CrystalViewerSimplified (CrystalSimplified):
         parameter_component_js = '''
         requirejs.config({
             paths: {
-                'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
             }
         });
 
@@ -1973,6 +1973,8 @@ class CrystalViewerSimplified (CrystalSimplified):
                 v2 = p2 - p3
                 cp = npcross(v1, v2)
                 cp = npceil(cp / (cp**2).sum()**0.5)
+                if npdot(cp, points[0]) < 0: # always to the exterior
+                    cp = -1.0 * cp
                 vbasis.append(cp)
                 if len(vbasis) == 3:
                     break;
@@ -2328,8 +2330,8 @@ class BravaisViewerSimplified (CrystalSimplified):
         crystal_component_js = '''
         requirejs.config({
             paths: {
-                'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
             }
         });
 
@@ -2648,8 +2650,8 @@ class BravaisViewerSimplified (CrystalSimplified):
         parameter_component_js = '''
         requirejs.config({
             paths: {
-                'react': 'https://unpkg.com/react@16.8.6/umd/react.development',
-                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.development'
+                'react': 'https://unpkg.com/react@16.8.6/umd/react.production.min',
+                'react-dom': 'https://unpkg.com/react-dom@16/umd/react-dom.production.min'
             }
         });
 

@@ -228,10 +228,16 @@ class Nanohubsession():
             
     def checkStatus(self, session_id):
         self.validateSession() 
+        status = {}
         if (self.authenticated):
-            return check_status({'session_num': session_id}, self.headers)
-        return {}
-        
+            status = check_status({'session_num': session_id}, self.headers)
+        if 'success' in status and status['success'] and 'finished' in status and status['finished'] and status['run_file'] == "":    
+            regex = r"\[status\] output saved in [a-zA-Z0-9\/].*\/(run[0-9]*\.xml)"
+            match = re.search(regex, "".join(status['status']), re.MULTILINE)
+            if match:
+                status['run_file'] = match[1]
+        return status
+
     def getResults(self, session_id, run_file):
         self.validateSession() 
         results_json = {
